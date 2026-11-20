@@ -1,6 +1,9 @@
 import { Field } from 'payload'
 
+import { visibilityField } from '@/fields/visibility'
+
 export const searchFields: Field[] = [
+  { ...visibilityField, admin: { readOnly: true } } as Field,
   {
     name: 'slug',
     type: 'text',

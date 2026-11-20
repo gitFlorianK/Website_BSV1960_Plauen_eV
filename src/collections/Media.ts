@@ -8,29 +8,41 @@ import {
 import path from 'path'
 import { fileURLToPath } from 'url'
 
-import { anyone } from '../access/anyone'
-import { authenticated } from '../access/authenticated'
+import { isStaff, hasRole, publicOrMembers } from '@/access'
+import { visibilityField } from '@/fields/visibility'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
-export const Media: CollectionConfig = {
+/**
+ * Bilder und öffentliche PDFs. Dateien liegen bewusst NICHT unter public/, sondern werden
+ * ausschließlich über /api/media/file/... ausgeliefert – dort greift die Access-Regel
+ * (Sichtbarkeit „Nur Mitglieder“). Kein SVG (XSS-Risiko).
+ */
+export const Media: CollectionConfig<'media'> = {
   slug: 'media',
-  folders: true,
+  labels: { singular: 'Medium', plural: 'Medien' },
   access: {
-    create: authenticated,
-    delete: authenticated,
-    read: anyone,
-    update: authenticated,
+    read: publicOrMembers,
+    create: isStaff,
+    update: isStaff,
+    delete: hasRole('vorstand', 'redakteur'),
+  },
+  admin: {
+    group: 'Inhalte',
+    defaultColumns: ['filename', 'alt', 'visibility', 'updatedAt'],
   },
   fields: [
     {
       name: 'alt',
+      label: 'Alternativtext',
       type: 'text',
-      //required: true,
+      required: true,
+      admin: { description: 'Kurze Bildbeschreibung für Screenreader und Suchmaschinen.' },
     },
     {
       name: 'caption',
+      label: 'Bildunterschrift',
       type: 'richText',
       editor: lexicalEditor({
         features: ({ rootFeatures }) => {
@@ -38,44 +50,21 @@ export const Media: CollectionConfig = {
         },
       }),
     },
+    visibilityField,
   ],
   upload: {
-    // Upload to the public/media directory in Next.js making them publicly accessible even outside of Payload
-    staticDir: path.resolve(dirname, '../../public/media'),
+    staticDir: path.resolve(dirname, '../../uploads/media'),
+    mimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'application/pdf'],
     adminThumbnail: 'thumbnail',
     focalPoint: true,
     imageSizes: [
-      {
-        name: 'thumbnail',
-        width: 300,
-      },
-      {
-        name: 'square',
-        width: 500,
-        height: 500,
-      },
-      {
-        name: 'small',
-        width: 600,
-      },
-      {
-        name: 'medium',
-        width: 900,
-      },
-      {
-        name: 'large',
-        width: 1400,
-      },
-      {
-        name: 'xlarge',
-        width: 1920,
-      },
-      {
-        name: 'og',
-        width: 1200,
-        height: 630,
-        crop: 'center',
-      },
+      { name: 'thumbnail', width: 300 },
+      { name: 'square', width: 500, height: 500 },
+      { name: 'small', width: 600 },
+      { name: 'medium', width: 900 },
+      { name: 'large', width: 1400 },
+      { name: 'xlarge', width: 1920 },
+      { name: 'og', width: 1200, height: 630, crop: 'center' },
     ],
   },
 }

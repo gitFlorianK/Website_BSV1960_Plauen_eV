@@ -10,11 +10,12 @@ import { FixedToolbarFeature, HeadingFeature, lexicalEditor } from '@payloadcms/
 import { searchFields } from '@/search/fieldOverrides'
 import { beforeSyncWithSearch } from '@/search/beforeSync'
 
+import { anyone, hasRole, nobody, publicOrMembers } from '@/access'
 import { Page, Post } from '@/payload-types'
 import { getServerSideURL } from '@/utilities/getURL'
 
 const generateTitle: GenerateTitle<Post | Page> = ({ doc }) => {
-  return doc?.title ? `${doc.title} | Payload Website Template` : 'Payload Website Template'
+  return doc?.title ? `${doc.title} | BSV 1960 Plauen` : 'BSV 1960 Plauen'
 }
 
 const generateURL: GenerateURL<Post | Page> = ({ doc }) => {
@@ -27,6 +28,13 @@ export const plugins: Plugin[] = [
   redirectsPlugin({
     collections: ['pages', 'posts'],
     overrides: {
+      access: {
+        read: anyone,
+        create: hasRole('vorstand', 'redakteur'),
+        update: hasRole('vorstand', 'redakteur'),
+        delete: hasRole('vorstand', 'redakteur'),
+      },
+      admin: { group: 'Einstellungen' },
       // @ts-expect-error - This is a valid override, mapped fields don't resolve to the same type
       fields: ({ defaultFields }) => {
         return defaultFields.map((field) => {
@@ -58,7 +66,24 @@ export const plugins: Plugin[] = [
     fields: {
       payment: false,
     },
+    // Einsendungen werden ausschließlich serverseitig (validiert, Spamschutz, Rate-Limit) angelegt.
+    formSubmissionOverrides: {
+      access: {
+        read: hasRole('vorstand'),
+        create: nobody,
+        update: nobody,
+        delete: hasRole('vorstand'),
+      },
+      admin: { group: 'Verwaltung' },
+    },
     formOverrides: {
+      access: {
+        read: anyone,
+        create: hasRole('vorstand', 'redakteur'),
+        update: hasRole('vorstand', 'redakteur'),
+        delete: hasRole('vorstand', 'redakteur'),
+      },
+      admin: { group: 'Einstellungen' },
       fields: ({ defaultFields }) => {
         return defaultFields.map((field) => {
           if ('name' in field && field.name === 'confirmationMessage') {
@@ -84,6 +109,13 @@ export const plugins: Plugin[] = [
     collections: ['posts'],
     beforeSync: beforeSyncWithSearch,
     searchOverrides: {
+      access: {
+        read: publicOrMembers,
+        create: nobody,
+        update: nobody,
+        delete: hasRole('admin'),
+      },
+      admin: { group: 'Einstellungen' },
       fields: ({ defaultFields }) => {
         return [...defaultFields, ...searchFields]
       },

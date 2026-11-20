@@ -32,6 +32,7 @@ jobs:
 
     env:
       DATABASE_URL: postgres://bsv:bsv_ci_pw@localhost:5432/bsv1960
+      TEST_DATABASE_URL: postgres://bsv:bsv_ci_pw@localhost:5432/bsv1960
       PAYLOAD_SECRET: ci-only-secret-not-used-anywhere-else-0123456789
       CRON_SECRET: ci-only-cron-secret
       PREVIEW_SECRET: ci-only-preview-secret

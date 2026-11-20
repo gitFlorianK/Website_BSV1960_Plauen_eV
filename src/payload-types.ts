@@ -69,8 +69,18 @@ export interface Config {
   collections: {
     pages: Page;
     posts: Post;
+    galleries: Gallery;
     media: Media;
     categories: Category;
+    events: Event;
+    'event-registrations': EventRegistration;
+    'training-slots': TrainingSlot;
+    courses: Course;
+    'course-registrations': CourseRegistration;
+    seasons: Season;
+    locations: Location;
+    sponsors: Sponsor;
+    documents: Document;
     users: User;
     redirects: Redirect;
     forms: Form;
@@ -78,21 +88,26 @@ export interface Config {
     search: Search;
     'payload-kv': PayloadKv;
     'payload-jobs': PayloadJob;
-    'payload-folders': FolderInterface;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
   };
-  collectionsJoins: {
-    'payload-folders': {
-      documentsAndFolders: 'payload-folders' | 'media';
-    };
-  };
+  collectionsJoins: {};
   collectionsSelect: {
     pages: PagesSelect<false> | PagesSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
+    galleries: GalleriesSelect<false> | GalleriesSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
+    events: EventsSelect<false> | EventsSelect<true>;
+    'event-registrations': EventRegistrationsSelect<false> | EventRegistrationsSelect<true>;
+    'training-slots': TrainingSlotsSelect<false> | TrainingSlotsSelect<true>;
+    courses: CoursesSelect<false> | CoursesSelect<true>;
+    'course-registrations': CourseRegistrationsSelect<false> | CourseRegistrationsSelect<true>;
+    seasons: SeasonsSelect<false> | SeasonsSelect<true>;
+    locations: LocationsSelect<false> | LocationsSelect<true>;
+    sponsors: SponsorsSelect<false> | SponsorsSelect<true>;
+    documents: DocumentsSelect<false> | DocumentsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
@@ -100,7 +115,6 @@ export interface Config {
     search: SearchSelect<false> | SearchSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
-    'payload-folders': PayloadFoldersSelect<false> | PayloadFoldersSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -110,10 +124,12 @@ export interface Config {
   };
   fallbackLocale: null;
   globals: {
+    'site-settings': SiteSetting;
     header: Header;
     footer: Footer;
   };
   globalsSelect: {
+    'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
     header: HeaderSelect<false> | HeaderSelect<true>;
     footer: FooterSelect<false> | FooterSelect<true>;
   };
@@ -244,6 +260,11 @@ export interface Post {
     [k: string]: unknown;
   };
   relatedPosts?: (number | Post)[] | null;
+  /**
+   * Für Ergebnisberichte: ordnet den Beitrag dem Saisonarchiv zu.
+   */
+  season?: (number | null) | Season;
+  gallery?: (number | null) | Gallery;
   categories?: (number | Category)[] | null;
   meta?: {
     title?: string | null;
@@ -261,6 +282,7 @@ export interface Post {
         name?: string | null;
       }[]
     | null;
+  visibility: 'public' | 'members';
   /**
    * When enabled, the slug will auto-generate from the title field on save and autosave.
    */
@@ -276,7 +298,10 @@ export interface Post {
  */
 export interface Media {
   id: number;
-  alt?: string | null;
+  /**
+   * Kurze Bildbeschreibung für Screenreader und Suchmaschinen.
+   */
+  alt: string;
   caption?: {
     root: {
       type: string;
@@ -292,7 +317,7 @@ export interface Media {
     };
     [k: string]: unknown;
   } | null;
-  folder?: (number | null) | FolderInterface;
+  visibility: 'public' | 'members';
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -365,27 +390,34 @@ export interface Media {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "payload-folders".
+ * via the `definition` "seasons".
  */
-export interface FolderInterface {
+export interface Season {
   id: number;
   name: string;
-  folder?: (number | null) | FolderInterface;
-  documentsAndFolders?: {
-    docs?: (
-      | {
-          relationTo?: 'payload-folders';
-          value: number | FolderInterface;
-        }
-      | {
-          relationTo?: 'media';
-          value: number | Media;
-        }
-    )[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
-  folderType?: 'media'[] | null;
+  type: 'indoor' | 'outdoor';
+  startDate: string;
+  endDate: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "galleries".
+ */
+export interface Gallery {
+  id: number;
+  title: string;
+  date: string;
+  description?: string | null;
+  coverImage?: (number | null) | Media;
+  images: (number | Media)[];
+  visibility: 'public' | 'members';
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  slug: string;
   updatedAt: string;
   createdAt: string;
 }
@@ -419,7 +451,13 @@ export interface Category {
  */
 export interface User {
   id: number;
-  name?: string | null;
+  name: string;
+  roles: ('admin' | 'vorstand' | 'trainer' | 'redakteur' | 'mitglied')[];
+  /**
+   * Gesperrte Konten können sich nicht anmelden und haben keine Rechte.
+   */
+  accountDisabled?: boolean | null;
+  phone?: string | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -775,6 +813,206 @@ export interface Form {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "events".
+ */
+export interface Event {
+  id: number;
+  title: string;
+  eventType: 'tournament' | 'club' | 'training' | 'other';
+  startDate: string;
+  endDate?: string | null;
+  allDay?: boolean | null;
+  location?: (number | null) | Location;
+  /**
+   * Für auswärtige Turniere, wenn kein Vereinsort gewählt ist.
+   */
+  locationText?: string | null;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  externalUrl?: string | null;
+  registration?: {
+    enabled?: boolean | null;
+    deadline?: string | null;
+    maxParticipants?: number | null;
+  };
+  visibility: 'public' | 'members';
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  slug: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "locations".
+ */
+export interface Location {
+  id: number;
+  name: string;
+  street: string;
+  postalCode: string;
+  city: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "event-registrations".
+ */
+export interface EventRegistration {
+  id: number;
+  event: number | Event;
+  member: number | User;
+  bowClass: 'recurve' | 'compound' | 'barebow' | 'longbow' | 'hunting';
+  status: 'registered' | 'confirmed' | 'cancelled';
+  note?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "training-slots".
+ */
+export interface TrainingSlot {
+  id: number;
+  seasonType: 'indoor' | 'outdoor';
+  weekday: '1' | '2' | '3' | '4' | '5' | '6' | '7';
+  startTime: string;
+  endTime?: string | null;
+  /**
+   * z. B. „Kinder und Jugend“, „Bögen ohne Visier“
+   */
+  group: string;
+  location: number | Location;
+  note?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "courses".
+ */
+export interface Course {
+  id: number;
+  title: string;
+  audience: 'adults' | 'youth';
+  status: 'draft' | 'open' | 'waitlist' | 'closed';
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  minAge?: number | null;
+  maxAge?: number | null;
+  fee?: number | null;
+  capacity: number;
+  registrationDeadline: string;
+  location?: (number | null) | Location;
+  sessions?:
+    | {
+        start: string;
+        end?: string | null;
+        note?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "course-registrations".
+ */
+export interface CourseRegistration {
+  id: number;
+  course: number | Course;
+  status: 'unconfirmed' | 'registered' | 'waitlist' | 'confirmed' | 'cancelled';
+  firstName: string;
+  lastName: string;
+  birthDate: string;
+  email: string;
+  phone?: string | null;
+  guardian?: {
+    name?: string | null;
+    email?: string | null;
+    phone?: string | null;
+  };
+  message?: string | null;
+  consents?: {
+    privacyAcceptedAt?: string | null;
+    photosAllowed?: boolean | null;
+  };
+  confirmedAt?: string | null;
+  confirmTokenHash?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "sponsors".
+ */
+export interface Sponsor {
+  id: number;
+  name: string;
+  logo?: (number | null) | Media;
+  url?: string | null;
+  description?: string | null;
+  sortOrder?: number | null;
+  active?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "documents".
+ */
+export interface Document {
+  id: number;
+  title: string;
+  category: 'statutes' | 'minutes' | 'forms' | 'other';
+  description?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "redirects".
  */
 export interface Redirect {
@@ -830,6 +1068,7 @@ export interface Search {
     relationTo: 'posts';
     value: number | Post;
   };
+  visibility: 'public' | 'members';
   slug?: string | null;
   meta?: {
     title?: string | null;
@@ -972,12 +1211,52 @@ export interface PayloadLockedDocument {
         value: number | Post;
       } | null)
     | ({
+        relationTo: 'galleries';
+        value: number | Gallery;
+      } | null)
+    | ({
         relationTo: 'media';
         value: number | Media;
       } | null)
     | ({
         relationTo: 'categories';
         value: number | Category;
+      } | null)
+    | ({
+        relationTo: 'events';
+        value: number | Event;
+      } | null)
+    | ({
+        relationTo: 'event-registrations';
+        value: number | EventRegistration;
+      } | null)
+    | ({
+        relationTo: 'training-slots';
+        value: number | TrainingSlot;
+      } | null)
+    | ({
+        relationTo: 'courses';
+        value: number | Course;
+      } | null)
+    | ({
+        relationTo: 'course-registrations';
+        value: number | CourseRegistration;
+      } | null)
+    | ({
+        relationTo: 'seasons';
+        value: number | Season;
+      } | null)
+    | ({
+        relationTo: 'locations';
+        value: number | Location;
+      } | null)
+    | ({
+        relationTo: 'sponsors';
+        value: number | Sponsor;
+      } | null)
+    | ({
+        relationTo: 'documents';
+        value: number | Document;
       } | null)
     | ({
         relationTo: 'users';
@@ -998,10 +1277,6 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'search';
         value: number | Search;
-      } | null)
-    | ({
-        relationTo: 'payload-folders';
-        value: number | FolderInterface;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -1189,6 +1464,8 @@ export interface PostsSelect<T extends boolean = true> {
   heroImage?: T;
   content?: T;
   relatedPosts?: T;
+  season?: T;
+  gallery?: T;
   categories?: T;
   meta?:
     | T
@@ -1205,6 +1482,7 @@ export interface PostsSelect<T extends boolean = true> {
         id?: T;
         name?: T;
       };
+  visibility?: T;
   generateSlug?: T;
   slug?: T;
   updatedAt?: T;
@@ -1213,12 +1491,28 @@ export interface PostsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "galleries_select".
+ */
+export interface GalleriesSelect<T extends boolean = true> {
+  title?: T;
+  date?: T;
+  description?: T;
+  coverImage?: T;
+  images?: T;
+  visibility?: T;
+  generateSlug?: T;
+  slug?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "media_select".
  */
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
   caption?: T;
-  folder?: T;
+  visibility?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -1327,10 +1621,186 @@ export interface CategoriesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "events_select".
+ */
+export interface EventsSelect<T extends boolean = true> {
+  title?: T;
+  eventType?: T;
+  startDate?: T;
+  endDate?: T;
+  allDay?: T;
+  location?: T;
+  locationText?: T;
+  description?: T;
+  externalUrl?: T;
+  registration?:
+    | T
+    | {
+        enabled?: T;
+        deadline?: T;
+        maxParticipants?: T;
+      };
+  visibility?: T;
+  generateSlug?: T;
+  slug?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "event-registrations_select".
+ */
+export interface EventRegistrationsSelect<T extends boolean = true> {
+  event?: T;
+  member?: T;
+  bowClass?: T;
+  status?: T;
+  note?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "training-slots_select".
+ */
+export interface TrainingSlotsSelect<T extends boolean = true> {
+  seasonType?: T;
+  weekday?: T;
+  startTime?: T;
+  endTime?: T;
+  group?: T;
+  location?: T;
+  note?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "courses_select".
+ */
+export interface CoursesSelect<T extends boolean = true> {
+  title?: T;
+  audience?: T;
+  status?: T;
+  description?: T;
+  minAge?: T;
+  maxAge?: T;
+  fee?: T;
+  capacity?: T;
+  registrationDeadline?: T;
+  location?: T;
+  sessions?:
+    | T
+    | {
+        start?: T;
+        end?: T;
+        note?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "course-registrations_select".
+ */
+export interface CourseRegistrationsSelect<T extends boolean = true> {
+  course?: T;
+  status?: T;
+  firstName?: T;
+  lastName?: T;
+  birthDate?: T;
+  email?: T;
+  phone?: T;
+  guardian?:
+    | T
+    | {
+        name?: T;
+        email?: T;
+        phone?: T;
+      };
+  message?: T;
+  consents?:
+    | T
+    | {
+        privacyAcceptedAt?: T;
+        photosAllowed?: T;
+      };
+  confirmedAt?: T;
+  confirmTokenHash?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "seasons_select".
+ */
+export interface SeasonsSelect<T extends boolean = true> {
+  name?: T;
+  type?: T;
+  startDate?: T;
+  endDate?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "locations_select".
+ */
+export interface LocationsSelect<T extends boolean = true> {
+  name?: T;
+  street?: T;
+  postalCode?: T;
+  city?: T;
+  latitude?: T;
+  longitude?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "sponsors_select".
+ */
+export interface SponsorsSelect<T extends boolean = true> {
+  name?: T;
+  logo?: T;
+  url?: T;
+  description?: T;
+  sortOrder?: T;
+  active?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "documents_select".
+ */
+export interface DocumentsSelect<T extends boolean = true> {
+  title?: T;
+  category?: T;
+  description?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
   name?: T;
+  roles?: T;
+  accountDisabled?: T;
+  phone?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -1522,6 +1992,7 @@ export interface SearchSelect<T extends boolean = true> {
   title?: T;
   priority?: T;
   doc?: T;
+  visibility?: T;
   slug?: T;
   meta?:
     | T
@@ -1582,18 +2053,6 @@ export interface PayloadJobsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "payload-folders_select".
- */
-export interface PayloadFoldersSelect<T extends boolean = true> {
-  name?: T;
-  folder?: T;
-  documentsAndFolders?: T;
-  folderType?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents_select".
  */
 export interface PayloadLockedDocumentsSelect<T extends boolean = true> {
@@ -1623,6 +2082,53 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings".
+ */
+export interface SiteSetting {
+  id: number;
+  clubName: string;
+  shortName?: string | null;
+  foundedOn?: string | null;
+  address?: {
+    careOf?: string | null;
+    street?: string | null;
+    postalCode?: string | null;
+    city?: string | null;
+  };
+  email?: string | null;
+  phone?: string | null;
+  register?: {
+    court?: string | null;
+    number?: string | null;
+  };
+  /**
+   * Vertretungsberechtigte für Impressum und Vereinsseite.
+   */
+  board?:
+    | {
+        name: string;
+        position: string;
+        photo?: (number | null) | Media;
+        representative?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  privacyContact?: {
+    name?: string | null;
+    email?: string | null;
+  };
+  socialLinks?:
+    | {
+        label: string;
+        url: string;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1681,6 +2187,56 @@ export interface Footer {
     | null;
   updatedAt?: string | null;
   createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings_select".
+ */
+export interface SiteSettingsSelect<T extends boolean = true> {
+  clubName?: T;
+  shortName?: T;
+  foundedOn?: T;
+  address?:
+    | T
+    | {
+        careOf?: T;
+        street?: T;
+        postalCode?: T;
+        city?: T;
+      };
+  email?: T;
+  phone?: T;
+  register?:
+    | T
+    | {
+        court?: T;
+        number?: T;
+      };
+  board?:
+    | T
+    | {
+        name?: T;
+        position?: T;
+        photo?: T;
+        representative?: T;
+        id?: T;
+      };
+  privacyContact?:
+    | T
+    | {
+        name?: T;
+        email?: T;
+      };
+  socialLinks?:
+    | T
+    | {
+        label?: T;
+        url?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

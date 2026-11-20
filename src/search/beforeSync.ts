@@ -5,7 +5,7 @@ export const beforeSyncWithSearch: BeforeSync = async ({ req, originalDoc, searc
     doc: { relationTo: collection },
   } = searchDoc
 
-  const { slug, id, categories, title, meta } = originalDoc
+  const { slug, id, categories, title, meta, visibility } = originalDoc
 
   const modifiedDoc: DocToSync = {
     ...searchDoc,
@@ -17,6 +17,8 @@ export const beforeSyncWithSearch: BeforeSync = async ({ req, originalDoc, searc
       description: meta?.description,
     },
     categories: [],
+    // Mitglieder-Beiträge bleiben auch im Suchindex nur für Angemeldete sichtbar.
+    visibility: visibility === 'public' ? 'public' : 'members',
   }
 
   if (categories && Array.isArray(categories) && categories.length > 0) {

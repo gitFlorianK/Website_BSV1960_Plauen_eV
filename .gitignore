@@ -1,5 +1,5 @@
 build
-dist / media
+dist
 node_modules
 .DS_Store
 .env
@@ -7,8 +7,12 @@ node_modules
 next-env.d.ts
 .vercel
 
-# Payload default media upload directory
+# Uploads (Medien, Dokumente) – liegen außerhalb von public/, Backup separat
+/uploads/
 public/media/
+
+# TypeScript-Build-Cache
+*.tsbuildinfo
 
 public/robots.txt
 public/sitemap*.xml

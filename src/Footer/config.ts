@@ -1,13 +1,18 @@
 import type { GlobalConfig } from 'payload'
 
+import { anyone, hasRole } from '@/access'
+
 import { link } from '@/fields/link'
 import { revalidateFooter } from './hooks/revalidateFooter'
 
 export const Footer: GlobalConfig = {
   slug: 'footer',
+  label: 'Fußzeile',
   access: {
-    read: () => true,
+    read: anyone,
+    update: hasRole('vorstand', 'redakteur'),
   },
+  admin: { group: 'Inhalte' },
   fields: [
     {
       name: 'navItems',
