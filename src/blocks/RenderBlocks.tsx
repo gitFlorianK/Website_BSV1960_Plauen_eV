@@ -8,7 +8,7 @@ import { CallToActionBlock } from '@/blocks/CallToAction/Component'
 import { ContactInfoBlock } from '@/blocks/ContactInfo/Component'
 import { ContentBlock } from '@/blocks/Content/Component'
 import { CourseListBlock } from '@/blocks/CourseList/Component'
-import { FormBlock } from '@/blocks/Form/Component'
+import { ClubFormBlock } from '@/blocks/ClubForm/Component'
 import { LegalNoticeBlock } from '@/blocks/LegalNotice/Component'
 import { LinkListBlock } from '@/blocks/LinkList/Component'
 import { MediaBlock } from '@/blocks/MediaBlock/Component'
@@ -23,7 +23,7 @@ const blockComponents = {
   content: ContentBlock,
   courseList: CourseListBlock,
   cta: CallToActionBlock,
-  formBlock: FormBlock,
+  clubForm: ClubFormBlock,
   legalNotice: LegalNoticeBlock,
   linkList: LinkListBlock,
   mediaBlock: MediaBlock,

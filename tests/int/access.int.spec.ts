@@ -23,7 +23,9 @@ const ids: Record<string, number> = {}
 const CLEANUP_ORDER: CollectionSlug[] = [
   'event-registrations',
   'course-registrations',
-  'form-submissions',
+  'contact-requests',
+  'membership-applications',
+  'rate-limits',
   'search',
   'posts',
   'pages',
@@ -205,8 +207,15 @@ describe('Anonyme Besucher', () => {
       }),
     )
     await expectDenied(
-      payload.create({ collection: 'form-submissions', overrideAccess: false, data: { form: 1, submissionData: [] } }),
+      payload.create({
+        collection: 'contact-requests',
+        overrideAccess: false,
+        data: { name: 'X', email: 'x@test.local', topic: 'general', message: 'Hallo Verein!', status: 'new' },
+      }),
     )
+    await expectDenied(payload.find({ collection: 'contact-requests', overrideAccess: false }))
+    await expectDenied(payload.find({ collection: 'membership-applications', overrideAccess: false }))
+    await expectDenied(payload.find({ collection: 'rate-limits', overrideAccess: false }))
   })
 })
 
@@ -433,5 +442,56 @@ describe('Kurse – Validierung', () => {
         data: { audience: 'youth', capacity: 5, registrationDeadline: new Date().toISOString(), title: 'Ohne Termine', status: 'open' },
       }),
     ).rejects.toThrow()
+  })
+})
+
+describe('Formulareingänge (Kontakt, Mitgliedsanträge, Rate-Limits)', () => {
+  const contact = { name: 'Erika', email: 'erika@test.local', topic: 'general' as const, message: 'Wann ist Training?', status: 'new' as const }
+  const application = {
+    firstName: 'Max',
+    lastName: 'Muster',
+    birthDate: '1990-05-01',
+    street: 'Weg 1',
+    postalCode: '08523',
+    city: 'Plauen',
+    email: 'max@test.local',
+    bowType: 'recurve' as const,
+    status: 'new' as const,
+  }
+
+  it('niemand (auch Admin) legt Einträge über die API an – nur der Server-Code', async () => {
+    for (const user of [u.admin, u.vorstand, u.mitglied]) {
+      await expectDenied(payload.create({ collection: 'contact-requests', overrideAccess: false, user, data: contact }))
+      await expectDenied(payload.create({ collection: 'membership-applications', overrideAccess: false, user, data: application }))
+      await expectDenied(
+        payload.create({ collection: 'rate-limits', overrideAccess: false, user, data: { key: 'x', count: 1, resetAt: new Date().toISOString() } }),
+      )
+    }
+  })
+
+  it('nur Vorstand (und Admin) lesen, bearbeiten und löschen', async () => {
+    const c = await payload.create({ collection: 'contact-requests', data: contact })
+    const m = await payload.create({ collection: 'membership-applications', data: application })
+
+    for (const user of [u.vorstand, u.admin]) {
+      expect((await payload.find({ collection: 'contact-requests', overrideAccess: false, user })).totalDocs).toBe(1)
+      expect((await payload.find({ collection: 'membership-applications', overrideAccess: false, user })).totalDocs).toBe(1)
+    }
+    const done = await payload.update({ collection: 'contact-requests', id: c.id, overrideAccess: false, user: u.vorstand, data: { status: 'done' } })
+    expect(done.status).toBe('done')
+
+    for (const user of [u.redakteur, u.trainer, u.mitglied, u.gesperrt]) {
+      await expectDenied(payload.find({ collection: 'contact-requests', overrideAccess: false, user }))
+      await expectDenied(payload.find({ collection: 'membership-applications', overrideAccess: false, user }))
+      await expectDenied(payload.update({ collection: 'membership-applications', id: m.id, overrideAccess: false, user, data: { status: 'accepted' } }))
+      await expectDenied(payload.delete({ collection: 'contact-requests', id: c.id, overrideAccess: false, user }))
+    }
+
+    await payload.delete({ collection: 'membership-applications', id: m.id, overrideAccess: false, user: u.vorstand })
+    await payload.delete({ collection: 'contact-requests', id: c.id, overrideAccess: false, user: u.vorstand })
+  })
+
+  it('Rate-Limit-Tabelle ist für niemanden über die API sichtbar', async () => {
+    await expectDenied(payload.find({ collection: 'rate-limits', overrideAccess: false, user: u.admin }))
   })
 })

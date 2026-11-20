@@ -57,7 +57,13 @@ export const CourseRegistrations: CollectionConfig<'course-registrations'> = {
     {
       type: 'row',
       fields: [
-        { name: 'email', label: 'E-Mail', type: 'email', required: true },
+        {
+          name: 'email',
+          label: 'E-Mail',
+          type: 'email',
+          required: true,
+          admin: { description: 'Bei Minderjährigen: E-Mail der Erziehungsberechtigten.' },
+        },
         { name: 'phone', label: 'Telefon', type: 'text', maxLength: 50 },
       ],
     },
@@ -70,7 +76,6 @@ export const CourseRegistrations: CollectionConfig<'course-registrations'> = {
           type: 'row',
           fields: [
             { name: 'name', label: 'Name', type: 'text', maxLength: 200 },
-            { name: 'email', label: 'E-Mail', type: 'email' },
             { name: 'phone', label: 'Telefon', type: 'text', maxLength: 50 },
           ],
         },
@@ -84,6 +89,7 @@ export const CourseRegistrations: CollectionConfig<'course-registrations'> = {
       admin: { readOnly: true },
       fields: [
         { name: 'privacyAcceptedAt', label: 'Datenschutzhinweise akzeptiert am', type: 'date' },
+        { name: 'guardianConsentAt', label: 'Zustimmung Erziehungsberechtigte am', type: 'date' },
         { name: 'photosAllowed', label: 'Fotos erlaubt', type: 'checkbox', defaultValue: false },
       ],
     },
@@ -100,5 +106,6 @@ export const CourseRegistrations: CollectionConfig<'course-registrations'> = {
       index: true,
       hidden: true,
     },
+    { name: 'confirmTokenExpiresAt', type: 'date', hidden: true },
   ],
 }

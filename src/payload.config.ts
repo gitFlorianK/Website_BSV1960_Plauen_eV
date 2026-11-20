@@ -1,4 +1,5 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
+import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
 import { de } from '@payloadcms/translations/languages/de'
 import sharp from 'sharp'
 import path from 'path'
@@ -8,6 +9,7 @@ import { timingSafeEqual } from 'crypto'
 
 import { userHasRole } from './access'
 import { Categories } from './collections/Categories'
+import { ContactRequests } from './collections/ContactRequests'
 import { CourseRegistrations } from './collections/CourseRegistrations'
 import { Courses } from './collections/Courses'
 import { Documents } from './collections/Documents'
@@ -16,8 +18,10 @@ import { Events } from './collections/Events'
 import { Galleries } from './collections/Galleries'
 import { Locations } from './collections/Locations'
 import { Media } from './collections/Media'
+import { MembershipApplications } from './collections/MembershipApplications'
 import { Pages } from './collections/Pages'
 import { Posts } from './collections/Posts'
+import { RateLimits } from './collections/RateLimits'
 import { Seasons } from './collections/Seasons'
 import { Sponsors } from './collections/Sponsors'
 import { TrainingSlots } from './collections/TrainingSlots'
@@ -94,10 +98,34 @@ export default buildConfig({
     Locations,
     Sponsors,
     // Verwaltung
+    ContactRequests,
+    MembershipApplications,
     Documents,
     Users,
+    // intern
+    RateLimits,
   ],
   globals: [SiteSettings, Header, Footer],
+  // Ohne SMTP_HOST (z. B. CI) gibt Payload Mails nur im Log aus.
+  email: process.env.SMTP_HOST
+    ? nodemailerAdapter({
+        defaultFromAddress: process.env.MAIL_FROM_ADDRESS || 'noreply@bogensport-plauen.de',
+        defaultFromName: process.env.MAIL_FROM_NAME || 'BSV 1960 Plauen',
+        // Verbindung nur beim Start des Produktivservers prüfen (nicht im Build, nicht lokal)
+        skipVerify:
+          process.env.NODE_ENV !== 'production' || process.env.NEXT_PHASE === 'phase-production-build',
+        transportOptions: {
+          host: process.env.SMTP_HOST,
+          port: Number(process.env.SMTP_PORT || 587),
+          secure: process.env.SMTP_SECURE === 'true',
+          // Ohne Implicit TLS (Port 587) STARTTLS erzwingen – außer für lokale Hosts (Mailpit)
+          requireTLS:
+            process.env.SMTP_SECURE !== 'true' &&
+            !['localhost', '127.0.0.1', 'mailpit'].includes(process.env.SMTP_HOST),
+          auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined,
+        },
+      })
+    : undefined,
   cors: [serverURL],
   // Cookie-basierte Requests werden nur von der eigenen Origin akzeptiert.
   csrf: [serverURL],

@@ -8,6 +8,7 @@ import type { Course, CourseListBlock as Props } from '@/payload-types'
 import RichText from '@/components/RichText'
 import { SectionHeading } from '@/components/Section'
 import { formatDate, formatTime, formatWeekdayDate } from '@/utilities/dates'
+import { routes } from '@/utilities/routes'
 import { cn } from '@/utilities/ui'
 
 const STATUS: Record<Exclude<Course['status'], 'draft'>, { label: string; className: string }> = {
@@ -105,12 +106,11 @@ export const CourseListBlock: React.FC<Props> = async ({ heading, intro, emptyTe
 
                 {(c.status === 'open' || c.status === 'waitlist') && (
                   <div className="mt-6 border-t border-border pt-4">
-                    {/* Online-Anmeldung folgt in Phase 4 (Formular mit Double-Opt-in) */}
                     <Link
-                      href="/kontakt"
+                      href={routes.courseRegistration}
                       className="inline-flex h-11 items-center rounded-md bg-brand px-6 font-semibold text-primary-foreground hover:bg-brand-hover"
                     >
-                      {c.status === 'waitlist' ? 'Auf die Warteliste' : 'Interesse anmelden'}
+                      {c.status === 'waitlist' ? 'Auf die Warteliste' : 'Jetzt anmelden'}
                     </Link>
                   </div>
                 )}

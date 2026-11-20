@@ -41,7 +41,7 @@ Internet ──HTTPS──► Caddy (Reverse Proxy, Let's Encrypt, HSTS, Rate-Li
 - **Basis:** das offizielle Payload-Template `website` (`pnpm dlx create-payload-app -t website --db postgres`). Es bringt schon mit:
   - Pages und Posts mit Layout-Blöcken
   - Media mit `sharp`
-  - Plugins für SEO, Redirects, Formulare (Form Builder) und Suche
+  - Plugins für SEO, Redirects und Suche (der Form Builder wurde in Phase 4 durch fest programmierte Formulare ersetzt)
   - Live-Preview und Drafts/Versionierung
 - **Versionen:** Next.js und Payload in der aktuellen stabilen Version beim Setup; TypeScript strict, Tailwind CSS 4, pnpm.
 - **Mail:** SMTP über einen EU-Anbieter (z. B. das Postfach des Hosters) mit dem Payload-Nodemailer-Adapter. Lokal fängt Mailpit alle Mails ab.
@@ -81,7 +81,8 @@ Es gibt eine Auth-Collection `users` mit dem Feld `roles` (Mehrfachauswahl).
 | `media` | Öffentliche Bilder: Alt-Text Pflicht, Fokuspunkt, Bildgrößen, EXIF/GPS entfernt |
 | `documents` | Mitglieder-Downloads (Satzung, Beitragsordnung, Protokolle). Upload-Collection mit Zugriffsschutz, nicht öffentlich ausgeliefert |
 | `sponsors` | Name, Logo, URL, Reihenfolge |
-| `form-submissions` | Aus dem Form-Builder-Plugin: Kontaktformular und Mitgliedsantrag |
+| `contactRequests`, `membershipApplications` | Kontaktanfragen und Online-Mitgliedsanträge (nur serverseitig angelegt, lesbar nur für Vorstand) |
+| `rateLimits` | intern: Rate-Limit-Zähler und ALTCHA-Replay-Schutz (gehashte Schlüssel) |
 | `auditLog` | Logins, fehlgeschlagene Logins, Rollenänderungen, Löschungen (nur lesbar für Admin) |
 
 **Globals:**
@@ -142,7 +143,7 @@ Es gibt eine Auth-Collection `users` mit dem Feld `roles` (Mehrfachauswahl).
 - Spamschutz:
   - Honeypot
   - **ALTCHA** (Proof-of-Work, selbst gehostet, cookiefrei, kein Google reCAPTCHA)
-- Rate-Limit pro IP, Postgres-gestützt (`rate-limiter-flexible`). Zusätzlich ein grobes Limit in Caddy.
+- Rate-Limit pro IP (und pro E-Mail bei Kursanmeldungen), Postgres-gestützt mit atomarem SQL (eigene Umsetzung statt `rate-limiter-flexible`). Zusätzlich ein grobes Limit in Caddy, das `X-Real-IP` setzt.
 
 **Uploads**
 - Whitelist für MIME-Typen (JPEG, PNG, WebP, PDF) und Größenlimit.
@@ -241,6 +242,19 @@ bsv1960-website/
 8. **Deployment**
    - VPS einrichten (Skript in `ops/`), Caddy, Backups, Monitoring
    - Staging-Subdomain zur Abnahme, danach DNS-Umstellung der Domain
+
+**Stand:** Phasen 1–4 umgesetzt; Altinhalte (Teil von Phase 7) bereits in Phase 3 importiert.
+
+**Aus früheren Phasen übernommene Pflichten:**
+- Phase 5: interne Bilder (Galerien) für eingeloggte Mitglieder ausliefern (nicht über `next/image`).
+- Phase 6:
+  - Lösch-Jobs: unbestätigte Kursanmeldungen nach 48 h. Die Bestätigungsmail sagt das bereits zu!
+  - Lösch-Jobs: Kontaktanfragen nach 6 Monaten, abgelehnte Anträge nach 3 Monaten, Kursanmeldungen 12 Monate nach Kursende.
+  - CSP: Das ALTCHA-Widget braucht Web Worker (`worker-src blob:`) und eingebettete Styles. Für eine strikte CSP auf `altcha/external` mit eigener CSS-Datei umstellen.
+- Phase 8:
+  - Caddy muss `X-Real-IP` auf die echte Client-IP setzen und einen vom Client gesendeten Header überschreiben (Grundlage der Rate-Limits).
+  - `TZ=Europe/Berlin` setzen.
+  - SMTP mit STARTTLS/TLS (wird außer für lokale Hosts erzwungen).
 
 ## 9. Offene Punkte (vom Verein zu klären)
 

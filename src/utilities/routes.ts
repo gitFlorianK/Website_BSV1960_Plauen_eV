@@ -14,6 +14,12 @@ export const routes = {
   galleries: '/galerie',
   gallery: (slug: string) => `/galerie/${slug}`,
   search: '/suche',
+  contact: '/kontakt',
+  privacy: '/datenschutz',
+  /** Anker des Kursanmeldeformulars (Block „Formular“ auf der Seite Anfängerkurs) */
+  courseRegistration: '/anfaengerkurs#anmeldung',
+  courseConfirm: '/anmeldung-bestaetigen',
+  altchaChallenge: '/next/altcha',
   page: (slug: string) => (slug === 'home' ? '/' : `/${slug}`),
 } as const
 

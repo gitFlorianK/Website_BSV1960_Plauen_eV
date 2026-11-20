@@ -39,3 +39,20 @@ export const currentSeasonType = (now: Date = new Date()): 'indoor' | 'outdoor' 
   const m = monthInClubTz(now)
   return m >= 4 && m <= 9 ? 'outdoor' : 'indoor'
 }
+
+const isoDay = new Intl.DateTimeFormat('en-CA', {
+  timeZone: TIME_ZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+})
+
+/** Kalendertag in Vereinszeitzone als `YYYY-MM-DD` (für Tagesvergleiche wie Anmeldeschluss). */
+export const dayInClubTz = (v: string | Date = new Date()) => isoDay.format(d(v))
+
+/** Alter in vollendeten Jahren am Stichtag (Geburtsdatum `YYYY-MM-DD`). */
+export function ageOn(birthDate: string, on: string | Date = new Date()): number {
+  const [by, bm, bd] = birthDate.slice(0, 10).split('-').map(Number)
+  const [y, m, dd] = dayInClubTz(on).split('-').map(Number)
+  return y - by - (m < bm || (m === bm && dd < bd) ? 1 : 0)
+}

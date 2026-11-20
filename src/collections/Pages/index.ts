@@ -12,7 +12,7 @@ import { UpcomingEvents } from '../../blocks/UpcomingEvents/config'
 import { Archive } from '../../blocks/ArchiveBlock/config'
 import { CallToAction } from '../../blocks/CallToAction/config'
 import { Content } from '../../blocks/Content/config'
-import { FormBlock } from '../../blocks/Form/config'
+import { ClubForm } from '../../blocks/ClubForm/config'
 import { MediaBlock } from '../../blocks/MediaBlock/config'
 import { hero } from '@/heros/config'
 import { slugField } from '@/fields/slug'
@@ -94,7 +94,7 @@ export const Pages: CollectionConfig<'pages'> = {
                 ContactInfo,
                 LegalNotice,
                 Archive,
-                FormBlock,
+                ClubForm,
               ],
               required: true,
               admin: {

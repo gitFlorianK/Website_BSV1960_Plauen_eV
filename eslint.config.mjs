@@ -24,6 +24,11 @@ export default defineConfig([
       ],
     },
   },
+  {
+    // Von `payload migrate:create` generiert: Signatur ({ db, payload, req }) ist vorgegeben
+    files: ['src/migrations/**'],
+    rules: { '@typescript-eslint/no-unused-vars': 'off' },
+  },
   globalIgnores([
     '.next/',
     'next-env.d.ts',

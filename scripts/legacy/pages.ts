@@ -161,6 +161,15 @@ export const pages = ({ heroImage }: Ids) => [
         emptyText:
           'Die Termine für die nächsten Anfängerkurse stehen noch nicht fest. Schau bald wieder vorbei oder melde dich über unsere Kontaktseite.',
       },
+      {
+        blockType: 'clubForm' as const,
+        form: 'courseRegistration' as const,
+        heading: 'Online anmelden',
+        intro:
+          'Nach dem Absenden bekommst du eine E-Mail mit einem Bestätigungslink. Die Plätze vergeben wir in der Reihenfolge der Bestätigungen; ist ein Kurs voll, kommst du auf die Warteliste.',
+        closedText:
+          'Zurzeit ist keine Online-Anmeldung möglich. Sobald neue Kurstermine feststehen, kannst du dich hier anmelden.',
+      },
     ],
   },
   {
@@ -175,10 +184,16 @@ export const pages = ({ heroImage }: Ids) => [
           link('/anfaengerkurs', 'Anfängerkurs', false),
           '. Danach kannst du in den regulären Trainingszeiten mitmachen und Mitglied werden.',
         ),
-        // [OFFEN] Beiträge/Aufnahmegebühr laut Beitragsordnung ergänzen; Online-Antrag folgt in Phase 4
-        p(bold('Hinweis: '), 'Informationen zu Mitgliedsbeiträgen und der Online-Mitgliedsantrag folgen in Kürze.'),
-        p('Bis dahin erreichst du uns über die ', link('/kontakt', 'Kontaktseite', false), '.'),
+        // [OFFEN] Beiträge/Aufnahmegebühr laut Beitragsordnung ergänzen
+        p(bold('Hinweis: '), 'Informationen zu Mitgliedsbeiträgen folgen in Kürze – frag uns gern über die ', link('/kontakt', 'Kontaktseite', false), '.'),
       ),
+      {
+        blockType: 'clubForm' as const,
+        form: 'membership' as const,
+        heading: 'Online-Mitgliedsantrag',
+        intro:
+          'Mit dem Antrag meldest du dein Interesse an einer Mitgliedschaft an. Über die Aufnahme entscheidet der Vorstand – er meldet sich mit allen weiteren Unterlagen bei dir.',
+      },
     ],
   },
   {
@@ -230,6 +245,12 @@ export const pages = ({ heroImage }: Ids) => [
         p('Du interessierst dich fürs Bogenschießen? Alle Infos zum Einstieg findest du beim ', link('/anfaengerkurs', 'Anfängerkurs', false), '.'),
       ),
       { blockType: 'contactInfo' as const, showLocations: true },
+      {
+        blockType: 'clubForm' as const,
+        form: 'contact' as const,
+        heading: 'Schreib uns',
+        intro: 'Wir antworten in der Regel innerhalb weniger Tage.',
+      },
     ],
   },
   {

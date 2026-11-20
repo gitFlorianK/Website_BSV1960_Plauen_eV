@@ -1,4 +1,3 @@
-import { formBuilderPlugin } from '@payloadcms/plugin-form-builder'
 import { nestedDocsPlugin } from '@payloadcms/plugin-nested-docs'
 import { redirectsPlugin } from '@payloadcms/plugin-redirects'
 import { seoPlugin } from '@payloadcms/plugin-seo'
@@ -6,7 +5,6 @@ import { searchPlugin } from '@payloadcms/plugin-search'
 import { Plugin } from 'payload'
 import { revalidateRedirects } from '@/hooks/revalidateRedirects'
 import { GenerateTitle, GenerateURL } from '@payloadcms/plugin-seo/types'
-import { FixedToolbarFeature, HeadingFeature, lexicalEditor } from '@payloadcms/richtext-lexical'
 import { searchFields } from '@/search/fieldOverrides'
 import { beforeSyncWithSearch } from '@/search/beforeSync'
 
@@ -62,49 +60,6 @@ export const plugins: Plugin[] = [
   seoPlugin({
     generateTitle,
     generateURL,
-  }),
-  formBuilderPlugin({
-    fields: {
-      payment: false,
-    },
-    // Einsendungen werden ausschließlich serverseitig (validiert, Spamschutz, Rate-Limit) angelegt.
-    formSubmissionOverrides: {
-      access: {
-        read: hasRole('vorstand'),
-        create: nobody,
-        update: nobody,
-        delete: hasRole('vorstand'),
-      },
-      admin: { group: 'Verwaltung' },
-    },
-    formOverrides: {
-      access: {
-        read: anyone,
-        create: hasRole('vorstand', 'redakteur'),
-        update: hasRole('vorstand', 'redakteur'),
-        delete: hasRole('vorstand', 'redakteur'),
-      },
-      admin: { group: 'Einstellungen' },
-      fields: ({ defaultFields }) => {
-        return defaultFields.map((field) => {
-          if ('name' in field && field.name === 'confirmationMessage') {
-            return {
-              ...field,
-              editor: lexicalEditor({
-                features: ({ rootFeatures }) => {
-                  return [
-                    ...rootFeatures,
-                    FixedToolbarFeature(),
-                    HeadingFeature({ enabledHeadingSizes: ['h1', 'h2', 'h3', 'h4'] }),
-                  ]
-                },
-              }),
-            }
-          }
-          return field
-        })
-      },
-    },
   }),
   searchPlugin({
     collections: ['posts'],
