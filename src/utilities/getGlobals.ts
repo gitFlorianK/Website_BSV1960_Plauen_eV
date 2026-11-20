@@ -18,9 +18,11 @@ async function getGlobal<T extends Global>(slug: T, depth = 0): Promise<DataFrom
 }
 
 /**
- * Returns a unstable_cache function mapped with the cache tag for the slug
+ * Global aus dem Cache (Tag `global_<slug>`, invalidiert per afterChange-Hook).
+ * `revalidate` ist das Sicherheitsnetz für Änderungen ohne Hook, z. B. durch Import-Skripte.
  */
 export const getCachedGlobal = <T extends Global>(slug: T, depth = 0) =>
-  unstable_cache(async () => getGlobal<T>(slug, depth), [slug], {
+  unstable_cache(async () => getGlobal<T>(slug, depth), [slug, String(depth)], {
     tags: [`global_${slug}`],
+    revalidate: 600,
   })

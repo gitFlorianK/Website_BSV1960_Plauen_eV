@@ -8,6 +8,7 @@ import {
 
 export const Banner: Block = {
   slug: 'banner',
+  labels: { singular: 'Hinweiskasten', plural: 'Hinweiskästen' },
   fields: [
     {
       name: 'style',
@@ -15,9 +16,9 @@ export const Banner: Block = {
       defaultValue: 'info',
       options: [
         { label: 'Info', value: 'info' },
-        { label: 'Warning', value: 'warning' },
-        { label: 'Error', value: 'error' },
-        { label: 'Success', value: 'success' },
+        { label: 'Warnung', value: 'warning' },
+        { label: 'Fehler', value: 'error' },
+        { label: 'Erfolg', value: 'success' },
       ],
       required: true,
     },

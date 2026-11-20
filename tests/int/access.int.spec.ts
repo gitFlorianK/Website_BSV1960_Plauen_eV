@@ -141,7 +141,7 @@ beforeAll(async () => {
 
   const courseBase = { audience: 'adults' as const, capacity: 10, registrationDeadline: start }
   ids.courseDraft = (await payload.create({ collection: 'courses', data: { ...courseBase, title: 'Kurs Entwurf', status: 'draft' } })).id
-  ids.courseOpen = (await payload.create({ collection: 'courses', data: { ...courseBase, title: 'Kurs offen', status: 'open' } })).id
+  ids.courseOpen = (await payload.create({ collection: 'courses', data: { ...courseBase, title: 'Kurs offen', status: 'open', sessions: [{ start }] } })).id
 
   ids.courseReg = (
     await payload.create({
@@ -422,5 +422,16 @@ describe('Admin', () => {
       data: { roles: ['mitglied', 'trainer'] },
     })
     expect(updated.roles).toEqual(['mitglied', 'trainer'])
+  })
+})
+
+describe('Kurse – Validierung', () => {
+  it('Veröffentlichter Kurs braucht Termine, Entwurf nicht', async () => {
+    await expect(
+      payload.create({
+        collection: 'courses',
+        data: { audience: 'youth', capacity: 5, registrationDeadline: new Date().toISOString(), title: 'Ohne Termine', status: 'open' },
+      }),
+    ).rejects.toThrow()
   })
 })

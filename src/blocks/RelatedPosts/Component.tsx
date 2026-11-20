@@ -17,16 +17,19 @@ export const RelatedPosts: React.FC<RelatedPostsProps> = (props) => {
   const { className, docs, introContent } = props
 
   return (
-    <div className={clsx('lg:container', className)}>
+    <div className={clsx(className)}>
       {introContent && <RichText data={introContent} enableGutter={false} />}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 items-stretch">
-        {docs?.map((doc, index) => {
-          if (typeof doc === 'string') return null
-
-          return <Card key={index} doc={doc} relationTo="posts" showCategories />
-        })}
-      </div>
+      <h2 className="mb-6 text-2xl font-bold">Weitere Beiträge</h2>
+      <ul className="grid grid-cols-1 items-stretch gap-6 md:grid-cols-2">
+        {docs
+          ?.filter((doc): doc is Post => typeof doc === 'object' && doc !== null)
+          .map((doc) => (
+            <li key={doc.id}>
+              <Card doc={doc} />
+            </li>
+          ))}
+      </ul>
     </div>
   )
 }

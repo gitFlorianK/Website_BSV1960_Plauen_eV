@@ -11,8 +11,6 @@ import {
   RichText as ConvertRichText,
 } from '@payloadcms/richtext-lexical/react'
 
-import { CodeBlock, CodeBlockProps } from '@/blocks/Code/Component'
-
 import type {
   BannerBlock as BannerBlockProps,
   CallToActionBlock as CTABlockProps,
@@ -21,23 +19,40 @@ import type {
 import { BannerBlock } from '@/blocks/Banner/Component'
 import { CallToActionBlock } from '@/blocks/CallToAction/Component'
 import { cn } from '@/utilities/ui'
+import { docPath, type LinkableCollection } from '@/utilities/routes'
+import { isSafeUrl } from '@/utilities/safeUrl'
 
 type NodeTypes =
   | DefaultNodeTypes
-  | SerializedBlockNode<CTABlockProps | MediaBlockProps | BannerBlockProps | CodeBlockProps>
+  | SerializedBlockNode<CTABlockProps | MediaBlockProps | BannerBlockProps>
 
 const internalDocToHref = ({ linkNode }: { linkNode: SerializedLinkNode }) => {
   const { value, relationTo } = linkNode.fields.doc!
-  if (typeof value !== 'object') {
-    throw new Error('Expected value to be an object')
-  }
-  const slug = value.slug
-  return relationTo === 'posts' ? `/posts/${slug}` : `/${slug}`
+  if (typeof value !== 'object' || !value?.slug) return '#'
+  return docPath(relationTo as LinkableCollection, value.slug as string)
 }
+
+const linkConverters = LinkJSXConverter({ internalDocToHref })
 
 const jsxConverters: JSXConvertersFunction<NodeTypes> = ({ defaultConverters }) => ({
   ...defaultConverters,
-  ...LinkJSXConverter({ internalDocToHref }),
+  ...linkConverters,
+  // Unsichere Link-Ziele (z. B. javascript:) werden als reiner Text ausgegeben.
+  link: (args) => {
+    const fields = args.node.fields
+    if (fields.linkType !== 'internal' && !isSafeUrl(fields.url)) {
+      return <>{args.nodesToJSX({ nodes: args.node.children })}</>
+    }
+    const render = linkConverters.link
+    return typeof render === 'function' ? render(args) : null
+  },
+  autolink: (args) => {
+    if (!isSafeUrl(args.node.fields.url)) {
+      return <>{args.nodesToJSX({ nodes: args.node.children })}</>
+    }
+    const render = linkConverters.autolink
+    return typeof render === 'function' ? render(args) : null
+  },
   blocks: {
     banner: ({ node }) => <BannerBlock className="col-start-2 mb-4" {...node.fields} />,
     mediaBlock: ({ node }) => (
@@ -50,7 +65,6 @@ const jsxConverters: JSXConvertersFunction<NodeTypes> = ({ defaultConverters }) 
         disableInnerContainer={true}
       />
     ),
-    code: ({ node }) => <CodeBlock className="col-start-2" {...node.fields} />,
     cta: ({ node }) => <CallToActionBlock {...node.fields} />,
   },
 })
@@ -71,7 +85,7 @@ export default function RichText(props: Props) {
         {
           container: enableGutter,
           'max-w-none': !enableGutter,
-          'mx-auto prose md:prose-md dark:prose-invert': enableProse,
+          'prose md:prose-md': enableProse,
         },
         className,
       )}

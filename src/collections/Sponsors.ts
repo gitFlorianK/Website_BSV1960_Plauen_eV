@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
 import { anyone, hasRole } from '@/access'
+import { revalidateSiteAfterChange, revalidateSiteAfterDelete } from '@/hooks/revalidate'
 
 export const Sponsors: CollectionConfig<'sponsors'> = {
   slug: 'sponsors',
@@ -17,6 +18,10 @@ export const Sponsors: CollectionConfig<'sponsors'> = {
     group: 'Verein',
   },
   defaultSort: 'sortOrder',
+  hooks: {
+    afterChange: [revalidateSiteAfterChange],
+    afterDelete: [revalidateSiteAfterDelete],
+  },
   fields: [
     { name: 'name', label: 'Name', type: 'text', required: true },
     { name: 'logo', label: 'Logo', type: 'upload', relationTo: 'media' },

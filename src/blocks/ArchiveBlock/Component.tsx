@@ -31,6 +31,7 @@ export const ArchiveBlock: React.FC<
       depth: 1,
       limit,
       overrideAccess: false,
+      sort: '-publishedAt',
       ...(flattenedCategories && flattenedCategories.length > 0
         ? {
             where: {
@@ -45,18 +46,17 @@ export const ArchiveBlock: React.FC<
     posts = fetchedPosts.docs
   } else {
     if (selectedDocs?.length) {
-      const filteredSelectedPosts = selectedDocs.map((post) => {
-        if (typeof post.value === 'object') return post.value
-      }) as Post[]
-
-      posts = filteredSelectedPosts
+      // Nicht lesbare Beiträge (z. B. nur für Mitglieder) kommen nur als ID zurück → weglassen
+      posts = selectedDocs
+        .map((post) => post.value)
+        .filter((value): value is Post => typeof value === 'object' && value !== null)
     }
   }
 
   return (
-    <div className="my-16" id={`block-${id}`}>
+    <div id={`block-${id}`}>
       {introContent && (
-        <div className="container mb-16">
+        <div className="container mb-8">
           <RichText className="ms-0 max-w-[48rem]" data={introContent} enableGutter={false} />
         </div>
       )}

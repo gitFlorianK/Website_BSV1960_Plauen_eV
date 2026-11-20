@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
 import { anyone, hasRole } from '@/access'
+import { revalidateSiteAfterChange, revalidateSiteAfterDelete } from '@/hooks/revalidate'
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/
 const validateTime = (value: unknown) =>
@@ -35,6 +36,10 @@ export const TrainingSlots: CollectionConfig<'training-slots'> = {
     group: 'Termine & Kurse',
   },
   defaultSort: ['seasonType', 'weekday', 'startTime'],
+  hooks: {
+    afterChange: [revalidateSiteAfterChange],
+    afterDelete: [revalidateSiteAfterDelete],
+  },
   fields: [
     {
       name: 'seasonType',

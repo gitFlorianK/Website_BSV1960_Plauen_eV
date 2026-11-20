@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
 import { anyone, hasRole } from '@/access'
+import { revalidateSiteAfterChange, revalidateSiteAfterDelete } from '@/hooks/revalidate'
 
 /** Trainings- und Veranstaltungsorte. */
 export const Locations: CollectionConfig<'locations'> = {
@@ -16,6 +17,10 @@ export const Locations: CollectionConfig<'locations'> = {
     useAsTitle: 'name',
     defaultColumns: ['name', 'street', 'city'],
     group: 'Verein',
+  },
+  hooks: {
+    afterChange: [revalidateSiteAfterChange],
+    afterDelete: [revalidateSiteAfterDelete],
   },
   fields: [
     { name: 'name', label: 'Name', type: 'text', required: true },

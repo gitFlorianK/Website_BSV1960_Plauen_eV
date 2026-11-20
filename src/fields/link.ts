@@ -1,16 +1,17 @@
 import type { Field, GroupField } from 'payload'
 
 import deepMerge from '@/utilities/deepMerge'
+import { validateSafeUrl } from '@/utilities/safeUrl'
 
 export type LinkAppearances = 'default' | 'outline'
 
 export const appearanceOptions: Record<LinkAppearances, { label: string; value: string }> = {
   default: {
-    label: 'Default',
+    label: 'Button',
     value: 'default',
   },
   outline: {
-    label: 'Outline',
+    label: 'Button (Umriss)',
     value: 'outline',
   },
 }
@@ -42,11 +43,11 @@ export const link: LinkType = ({ appearances, disableLabel = false, overrides = 
             defaultValue: 'reference',
             options: [
               {
-                label: 'Internal link',
+                label: 'Interne Seite',
                 value: 'reference',
               },
               {
-                label: 'Custom URL',
+                label: 'Eigene URL',
                 value: 'custom',
               },
             ],
@@ -60,7 +61,7 @@ export const link: LinkType = ({ appearances, disableLabel = false, overrides = 
               },
               width: '50%',
             },
-            label: 'Open in new tab',
+            label: 'In neuem Tab öffnen',
           },
         ],
       },
@@ -74,7 +75,7 @@ export const link: LinkType = ({ appearances, disableLabel = false, overrides = 
       admin: {
         condition: (_, siblingData) => siblingData?.type === 'reference',
       },
-      label: 'Document to link to',
+      label: 'Ziel',
       relationTo: ['pages', 'posts'],
       required: true,
     },
@@ -84,8 +85,9 @@ export const link: LinkType = ({ appearances, disableLabel = false, overrides = 
       admin: {
         condition: (_, siblingData) => siblingData?.type === 'custom',
       },
-      label: 'Custom URL',
+      label: 'URL',
       required: true,
+      validate: validateSafeUrl,
     },
   ]
 
@@ -108,7 +110,7 @@ export const link: LinkType = ({ appearances, disableLabel = false, overrides = 
           admin: {
             width: '50%',
           },
-          label: 'Label',
+          label: 'Beschriftung',
           required: true,
         },
       ],
@@ -128,7 +130,7 @@ export const link: LinkType = ({ appearances, disableLabel = false, overrides = 
       name: 'appearance',
       type: 'select',
       admin: {
-        description: 'Choose how the link should be rendered.',
+        description: 'Darstellung des Links.',
       },
       defaultValue: 'default',
       options: appearanceOptionsToUse,

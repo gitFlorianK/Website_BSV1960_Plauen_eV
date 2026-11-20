@@ -17,22 +17,22 @@ export const hero: Field = {
       name: 'type',
       type: 'select',
       defaultValue: 'lowImpact',
-      label: 'Type',
+      label: 'Seitenkopf',
       options: [
         {
-          label: 'None',
+          label: 'Keiner',
           value: 'none',
         },
         {
-          label: 'High Impact',
+          label: 'Großes Titelbild',
           value: 'highImpact',
         },
         {
-          label: 'Medium Impact',
+          label: 'Text mit Bild',
           value: 'mediumImpact',
         },
         {
-          label: 'Low Impact',
+          label: 'Nur Titel',
           value: 'lowImpact',
         },
       ],
@@ -64,6 +64,7 @@ export const hero: Field = {
       admin: {
         condition: (_, { type } = {}) => ['highImpact', 'mediumImpact'].includes(type),
       },
+      label: 'Bild',
       relationTo: 'media',
       required: true,
     },

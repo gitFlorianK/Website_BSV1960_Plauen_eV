@@ -12,7 +12,6 @@ import {
 import { hasRole, publishedPublicOrMembers } from '@/access'
 import { visibilityField } from '@/fields/visibility'
 import { Banner } from '../../blocks/Banner/config'
-import { Code } from '../../blocks/Code/config'
 import { MediaBlock } from '../../blocks/MediaBlock/config'
 import { generatePreviewPath } from '../../utilities/generatePreviewPath'
 import { populateAuthors } from './hooks/populateAuthors'
@@ -71,6 +70,7 @@ export const Posts: CollectionConfig<'posts'> = {
   fields: [
     {
       name: 'title',
+      label: 'Titel',
       type: 'text',
       required: true,
     },
@@ -81,6 +81,7 @@ export const Posts: CollectionConfig<'posts'> = {
           fields: [
             {
               name: 'heroImage',
+              label: 'Titelbild',
               type: 'upload',
               relationTo: 'media',
             },
@@ -92,7 +93,7 @@ export const Posts: CollectionConfig<'posts'> = {
                   return [
                     ...rootFeatures,
                     HeadingFeature({ enabledHeadingSizes: ['h1', 'h2', 'h3', 'h4'] }),
-                    BlocksFeature({ blocks: [Banner, Code, MediaBlock] }),
+                    BlocksFeature({ blocks: [Banner, MediaBlock] }),
                     FixedToolbarFeature(),
                     InlineToolbarFeature(),
                     HorizontalRuleFeature(),
@@ -103,12 +104,13 @@ export const Posts: CollectionConfig<'posts'> = {
               required: true,
             },
           ],
-          label: 'Content',
+          label: 'Inhalt',
         },
         {
           fields: [
             {
               name: 'relatedPosts',
+              label: 'Verwandte Beiträge',
               type: 'relationship',
               admin: {
                 position: 'sidebar',
@@ -142,6 +144,7 @@ export const Posts: CollectionConfig<'posts'> = {
             },
             {
               name: 'categories',
+              label: 'Kategorien',
               type: 'relationship',
               admin: {
                 position: 'sidebar',
@@ -150,7 +153,7 @@ export const Posts: CollectionConfig<'posts'> = {
               relationTo: 'categories',
             },
           ],
-          label: 'Meta',
+          label: 'Zuordnung',
         },
         {
           name: 'meta',
@@ -183,6 +186,7 @@ export const Posts: CollectionConfig<'posts'> = {
     },
     {
       name: 'publishedAt',
+      label: 'Veröffentlicht am',
       type: 'date',
       admin: {
         date: {
@@ -203,6 +207,7 @@ export const Posts: CollectionConfig<'posts'> = {
     },
     {
       name: 'authors',
+      label: 'Verfasst von',
       type: 'relationship',
       admin: {
         position: 'sidebar',

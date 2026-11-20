@@ -16,19 +16,19 @@ const columnFields: Field[] = [
     defaultValue: 'oneThird',
     options: [
       {
-        label: 'One Third',
+        label: 'Ein Drittel',
         value: 'oneThird',
       },
       {
-        label: 'Half',
+        label: 'Halb',
         value: 'half',
       },
       {
-        label: 'Two Thirds',
+        label: 'Zwei Drittel',
         value: 'twoThirds',
       },
       {
-        label: 'Full',
+        label: 'Volle Breite',
         value: 'full',
       },
     ],
@@ -66,6 +66,7 @@ const columnFields: Field[] = [
 export const Content: Block = {
   slug: 'content',
   interfaceName: 'ContentBlock',
+  labels: { singular: 'Text (Spalten)', plural: 'Texte' },
   fields: [
     {
       name: 'columns',

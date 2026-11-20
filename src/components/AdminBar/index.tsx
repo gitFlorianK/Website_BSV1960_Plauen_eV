@@ -15,21 +15,16 @@ import { getClientSideURL } from '@/utilities/getURL'
 const baseClass = 'admin-bar'
 
 const collectionLabels = {
-  pages: {
-    plural: 'Pages',
-    singular: 'Page',
-  },
-  posts: {
-    plural: 'Posts',
-    singular: 'Post',
-  },
-  projects: {
-    plural: 'Projects',
-    singular: 'Project',
-  },
+  pages: { plural: 'Seiten', singular: 'Seite' },
+  posts: { plural: 'Beiträge', singular: 'Beitrag' },
 }
 
-const Title: React.FC = () => <span>Dashboard</span>
+/** URL-Segment → Collection (Frontend-Routen sind deutsch). */
+const segmentToCollection: Record<string, keyof typeof collectionLabels> = { aktuelles: 'posts' }
+
+const STAFF_ROLES = ['admin', 'vorstand', 'trainer', 'redakteur']
+
+const Title: React.FC = () => <span>Verwaltung</span>
 
 export const AdminBar: React.FC<{
   adminBarProps?: PayloadAdminBarProps
@@ -37,13 +32,13 @@ export const AdminBar: React.FC<{
   const { adminBarProps } = props || {}
   const segments = useSelectedLayoutSegments()
   const [show, setShow] = useState(false)
-  const collection = (
-    collectionLabels[segments?.[1] as keyof typeof collectionLabels] ? segments[1] : 'pages'
-  ) as keyof typeof collectionLabels
+  const collection = segmentToCollection[segments?.[0] ?? ''] ?? 'pages'
   const router = useRouter()
 
   const onAuthChange = React.useCallback((user: PayloadMeUser) => {
-    setShow(Boolean(user?.id))
+    // Nur Staff sieht die Admin-Leiste – nicht Mitglieder im Mitgliederbereich
+    const roles = ((user as { roles?: string[] } | null)?.roles ?? []) as string[]
+    setShow(Boolean(user?.id) && roles.some((r) => STAFF_ROLES.includes(r)))
   }, [])
 
   return (

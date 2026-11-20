@@ -1,6 +1,7 @@
 import type { GlobalConfig } from 'payload'
 
 import { anyone, hasRole } from '@/access'
+import { revalidateGlobal } from '@/hooks/revalidate'
 
 /** Zentrale Vereinsdaten – einzige Quelle für Kontakt, Impressum und Footer. */
 export const SiteSettings: GlobalConfig<'site-settings'> = {
@@ -11,6 +12,7 @@ export const SiteSettings: GlobalConfig<'site-settings'> = {
     update: hasRole('vorstand'),
   },
   admin: { group: 'Verwaltung' },
+  hooks: { afterChange: [revalidateGlobal] },
   fields: [
     {
       name: 'clubName',

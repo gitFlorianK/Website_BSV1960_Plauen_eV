@@ -2,6 +2,7 @@ import type { Access, CollectionConfig, Where } from 'payload'
 
 import { hasRole, isStaffUser } from '@/access'
 import type { User } from '@/payload-types'
+import { revalidateSiteAfterChange, revalidateSiteAfterDelete } from '@/hooks/revalidate'
 
 /** Anonyme sehen keine Kurse im Entwurf. */
 const readCourses: Access = ({ req: { user } }) =>
@@ -21,6 +22,10 @@ export const Courses: CollectionConfig<'courses'> = {
     useAsTitle: 'title',
     defaultColumns: ['title', 'audience', 'status', 'registrationDeadline', 'capacity'],
     group: 'Termine & Kurse',
+  },
+  hooks: {
+    afterChange: [revalidateSiteAfterChange],
+    afterDelete: [revalidateSiteAfterDelete],
   },
   fields: [
     { name: 'title', label: 'Titel', type: 'text', required: true },
@@ -70,8 +75,12 @@ export const Courses: CollectionConfig<'courses'> = {
       name: 'sessions',
       label: 'Termine',
       type: 'array',
-      minRows: 1,
       labels: { singular: 'Termin', plural: 'Termine' },
+      // Entwürfe dürfen noch ohne Termine angelegt werden
+      validate: (value: unknown, { siblingData }: { siblingData: Record<string, unknown> }) =>
+        siblingData.status === 'draft' ||
+        (Array.isArray(value) && value.length > 0) ||
+        'Vor der Veröffentlichung mindestens einen Termin eintragen.',
       fields: [
         {
           type: 'row',

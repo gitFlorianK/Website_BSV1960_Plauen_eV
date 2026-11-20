@@ -1,17 +1,77 @@
-import { test, expect, Page } from '@playwright/test'
+import { test, expect } from '@playwright/test'
 
+/**
+ * Smoke-Tests des öffentlichen Frontends. Erwartet importierte Altinhalte (pnpm import:legacy).
+ */
 test.describe('Frontend', () => {
-  let page: Page
+  test('Startseite mit Navigation, Skip-Link und ohne Drittanbieter-Requests', async ({ page }) => {
+    const external: string[] = []
+    page.on('request', (r) => {
+      const { hostname } = new URL(r.url())
+      if (!['127.0.0.1', 'localhost'].includes(hostname)) external.push(r.url())
+    })
+    await page.goto('/', { waitUntil: 'networkidle' })
+    await expect(page).toHaveTitle(/BSV 1960 Plauen/)
+    await expect(page.locator('html')).toHaveAttribute('lang', 'de')
+    await expect(page.locator('h1')).toHaveCount(1)
+    await expect(page.getByRole('navigation', { name: 'Hauptnavigation' })).toBeVisible()
 
-  test.beforeAll(async ({ browser }, testInfo) => {
-    const context = await browser.newContext()
-    page = await context.newPage()
+    await page.keyboard.press('Tab')
+    await expect(page.getByRole('link', { name: 'Zum Inhalt springen' })).toBeFocused()
+
+    expect(external).toEqual([])
   })
 
-  test('can load homepage', async ({ page }) => {
-    await page.goto('http://localhost:3000')
-    await expect(page).toHaveTitle(/Payload Website Template/)
-    const heading = page.locator('h1').first()
-    await expect(heading).toHaveText('Payload Website Template')
+  test('Trainingszeiten zeigen beide Saisons, eine davon als aktuell', async ({ page }) => {
+    await page.goto('/training')
+    await expect(page.getByRole('heading', { name: 'Hallensaison' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Freiluftsaison' })).toBeVisible()
+    await expect(page.getByText('Aktuell', { exact: true })).toHaveCount(1)
+  })
+
+  test('Mobiles Menü ist per Button bedienbar', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 800 })
+    await page.goto('/')
+    const button = page.getByRole('button', { name: 'Menü' })
+    await expect(button).toHaveAttribute('aria-expanded', 'false')
+    await button.click()
+    await expect(button).toHaveAttribute('aria-expanded', 'true')
+    await page.getByRole('navigation', { name: 'Hauptnavigation (mobil)' }).getByRole('link', { name: 'Training' }).click()
+    await expect(page).toHaveURL(/\/training$/)
+  })
+
+  test('Beiträge, Saisonarchiv und Detailseite', async ({ page }) => {
+    await page.goto('/aktuelles')
+    await expect(page.getByRole('navigation', { name: 'Ergebnisarchiv nach Saison' })).toBeVisible()
+    await page.getByRole('link', { name: 'Rückblick Hallensaison 2019/20' }).click()
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Rückblick Hallensaison 2019/20')
+  })
+
+  test('Alte URLs leiten dauerhaft um', async ({ request }) => {
+    const res = await request.get('/training.html', { maxRedirects: 0 })
+    expect(res.status()).toBe(308)
+    expect(res.headers()['location']).toMatch(/\/training$/)
+  })
+
+  test('iCal-Feed ist gültig', async ({ request }) => {
+    const res = await request.get('/termine.ics')
+    expect(res.headers()['content-type']).toContain('text/calendar')
+    const body = await res.text()
+    expect(body.startsWith('BEGIN:VCALENDAR\r\n')).toBe(true)
+    expect(body.trimEnd().endsWith('END:VCALENDAR')).toBe(true)
+  })
+
+  test('Inhalte „nur für Mitglieder“ sind anonym nicht abrufbar', async ({ page, request }) => {
+    await page.goto('/galerie')
+    await expect(page.getByText('nur für Vereinsmitglieder sichtbar')).toBeVisible()
+    expect((await request.get('/galerie/goerlitz-2014')).status()).toBe(404)
+    const media = await request.get('/api/media?where[visibility][equals]=members&limit=1')
+    expect((await media.json()).docs).toEqual([])
+  })
+
+  test('404-Seite auf Deutsch', async ({ page }) => {
+    const res = await page.goto('/gibt-es-nicht')
+    expect(res?.status()).toBe(404)
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Daneben getroffen')
   })
 })

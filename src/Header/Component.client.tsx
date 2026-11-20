@@ -1,42 +1,117 @@
 'use client'
-import { useHeaderTheme } from '@/providers/HeaderTheme'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import React, { useEffect, useState } from 'react'
+import React, { useId, useState } from 'react'
+import { MenuIcon, XIcon } from 'lucide-react'
 
 import type { Header } from '@/payload-types'
 
-import { Logo } from '@/components/Logo/Logo'
-import { HeaderNav } from './Nav'
+import { Logo } from '@/components/Logo'
+import { cn } from '@/utilities/ui'
+import { docPath } from '@/utilities/routes'
 
-interface HeaderClientProps {
-  data: Header
-}
+type NavLink = { href: string; label: string; newTab: boolean }
 
-export const HeaderClient: React.FC<HeaderClientProps> = ({ data }) => {
-  /* Storing the value in a useState to avoid hydration errors */
-  const [theme, setTheme] = useState<string | null>(null)
-  const { headerTheme, setHeaderTheme } = useHeaderTheme()
+const toNavLinks = (data: Header): NavLink[] =>
+  (data?.navItems ?? [])
+    .map(({ link }) => {
+      const ref = link.reference
+      const href =
+        link.type === 'reference' && ref && typeof ref.value === 'object' && ref.value.slug
+          ? docPath(ref.relationTo, ref.value.slug)
+          : link.url
+      return href ? { href, label: link.label, newTab: Boolean(link.newTab) } : null
+    })
+    .filter((l): l is NavLink => l !== null)
+
+const isActive = (pathname: string, href: string) =>
+  href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`)
+
+export const HeaderClient: React.FC<{ data: Header }> = ({ data }) => {
   const pathname = usePathname()
-
-  useEffect(() => {
-    setHeaderTheme(null)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname])
-
-  useEffect(() => {
-    if (headerTheme && headerTheme !== theme) setTheme(headerTheme)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [headerTheme])
+  const links = toNavLinks(data)
 
   return (
-    <header className="container relative z-20   " {...(theme ? { 'data-theme': theme } : {})}>
-      <div className="py-8 flex justify-between">
-        <Link href="/">
-          <Logo loading="eager" priority="high" className="invert dark:invert-0" />
+    <header className="sticky top-0 z-30 border-b-4 border-brand bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85">
+      <a
+        href="#inhalt"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-ink focus:px-4 focus:py-2 focus:text-white"
+      >
+        Zum Inhalt springen
+      </a>
+      <div className="container flex items-center justify-between gap-6 py-3">
+        <Link href="/" aria-label="Startseite BSV 1960 Plauen" className="shrink-0">
+          <Logo priority />
         </Link>
-        <HeaderNav data={data} />
+
+        <nav aria-label="Hauptnavigation" className="hidden lg:block">
+          <ul className="flex items-center gap-1">
+            {links.map((l) => (
+              <li key={l.href}>
+                <NavItem link={l} active={isActive(pathname, l.href)} />
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        {/* key: Menü schließt sich bei Seitenwechsel automatisch */}
+        <MobileMenu key={pathname} links={links} pathname={pathname} />
       </div>
     </header>
+  )
+}
+
+const NavItem: React.FC<{ link: NavLink; active: boolean; mobile?: boolean }> = ({
+  link,
+  active,
+  mobile,
+}) => (
+  <Link
+    href={link.href}
+    {...(link.newTab ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+    aria-current={active ? 'page' : undefined}
+    className={cn(
+      'block rounded-md font-medium transition-colors',
+      mobile ? 'px-4 py-3 text-lg' : 'px-3 py-2 text-[0.95rem]',
+      active
+        ? 'bg-brand-soft text-ink underline decoration-brand decoration-[3px] underline-offset-[6px]'
+        : 'text-foreground hover:bg-muted hover:text-ink',
+    )}
+  >
+    {link.label}
+  </Link>
+)
+
+const MobileMenu: React.FC<{ links: NavLink[]; pathname: string }> = ({ links, pathname }) => {
+  const [open, setOpen] = useState(false)
+  const menuId = useId()
+
+  return (
+    <div className="lg:hidden">
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={menuId}
+        onClick={() => setOpen((o) => !o)}
+        className="inline-flex items-center gap-2 rounded-md border-2 border-ink px-3 py-2 font-semibold text-ink"
+      >
+        {open ? <XIcon aria-hidden className="size-5" /> : <MenuIcon aria-hidden className="size-5" />}
+        Menü
+      </button>
+      <nav
+        id={menuId}
+        aria-label="Hauptnavigation (mobil)"
+        hidden={!open}
+        className="absolute inset-x-0 top-full border-b-4 border-brand bg-white shadow-lg"
+      >
+        <ul className="container flex flex-col py-3">
+          {links.map((l) => (
+            <li key={l.href}>
+              <NavItem link={l} active={isActive(pathname, l.href)} mobile />
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </div>
   )
 }

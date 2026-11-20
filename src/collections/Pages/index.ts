@@ -1,6 +1,14 @@
 import type { CollectionConfig } from 'payload'
 
 import { hasRole, staffOrPublished } from '@/access'
+import { BoardMembers } from '../../blocks/BoardMembers/config'
+import { ContactInfo } from '../../blocks/ContactInfo/config'
+import { CourseList } from '../../blocks/CourseList/config'
+import { LegalNotice } from '../../blocks/LegalNotice/config'
+import { LinkList } from '../../blocks/LinkList/config'
+import { SponsorList } from '../../blocks/SponsorList/config'
+import { TrainingSchedule } from '../../blocks/TrainingSchedule/config'
+import { UpcomingEvents } from '../../blocks/UpcomingEvents/config'
 import { Archive } from '../../blocks/ArchiveBlock/config'
 import { CallToAction } from '../../blocks/CallToAction/config'
 import { Content } from '../../blocks/Content/config'
@@ -73,7 +81,21 @@ export const Pages: CollectionConfig<'pages'> = {
             {
               name: 'layout',
               type: 'blocks',
-              blocks: [CallToAction, Content, MediaBlock, Archive, FormBlock],
+              blocks: [
+                Content,
+                MediaBlock,
+                CallToAction,
+                TrainingSchedule,
+                UpcomingEvents,
+                CourseList,
+                BoardMembers,
+                SponsorList,
+                LinkList,
+                ContactInfo,
+                LegalNotice,
+                Archive,
+                FormBlock,
+              ],
               required: true,
               admin: {
                 initCollapsed: true,

@@ -1,79 +1,68 @@
-'use client'
-import { cn } from '@/utilities/ui'
-import useClickableCard from '@/utilities/useClickableCard'
 import Link from 'next/link'
-import React, { Fragment } from 'react'
+import React from 'react'
+import { LockIcon } from 'lucide-react'
 
-import type { Post } from '@/payload-types'
+import type { Media as MediaType, Post } from '@/payload-types'
 
 import { Media } from '@/components/Media'
+import { formatDate } from '@/utilities/dates'
+import { routes } from '@/utilities/routes'
+import { cn } from '@/utilities/ui'
 
-export type CardPostData = Pick<Post, 'slug' | 'categories' | 'meta' | 'title'>
+export type CardPostData = Pick<Post, 'slug' | 'categories' | 'meta' | 'title'> &
+  Partial<Pick<Post, 'publishedAt' | 'heroImage' | 'visibility'>>
 
+const publicImage = (doc: CardPostData): MediaType | null => {
+  for (const img of [doc.meta?.image, doc.heroImage]) {
+    // Bilder „nur für Mitglieder“ lassen sich (noch) nicht über next/image optimieren
+    if (img && typeof img === 'object' && img.visibility === 'public') return img
+  }
+  return null
+}
+
+/** Beitragskarte; die ganze Karte ist über einen gestreckten Link klickbar (ohne Client-JS). */
 export const Card: React.FC<{
-  alignItems?: 'center'
   className?: string
-  doc?: CardPostData
-  relationTo?: 'posts'
+  doc: CardPostData
   showCategories?: boolean
-  title?: string
-}> = (props) => {
-  const { card, link } = useClickableCard({})
-  const { className, doc, relationTo, showCategories, title: titleFromProps } = props
-
-  const { slug, categories, meta, title } = doc || {}
-  const { description, image: metaImage } = meta || {}
-
-  const hasCategories = categories && Array.isArray(categories) && categories.length > 0
-  const titleToUse = titleFromProps || title
-  const sanitizedDescription = description?.replace(/\s/g, ' ') // replace non-breaking space with white space
-  const href = `/${relationTo}/${slug}`
+  headingLevel?: 'h2' | 'h3'
+}> = ({ className, doc, showCategories = true, headingLevel: H = 'h3' }) => {
+  const image = publicImage(doc)
+  const categories = (doc.categories ?? []).filter(
+    (c): c is Exclude<typeof c, number | string> => typeof c === 'object' && c !== null,
+  )
+  const description = doc.meta?.description?.replace(/\s/g, ' ')
 
   return (
     <article
       className={cn(
-        'border border-border rounded-lg overflow-hidden bg-card hover:cursor-pointer',
+        'group relative flex h-full flex-col overflow-hidden rounded-xl border border-border bg-white shadow-sm transition-shadow focus-within:shadow-md hover:shadow-md',
         className,
       )}
-      ref={card.ref}
     >
-      <div className="relative w-full ">
-        {!metaImage && <div className="">No image</div>}
-        {metaImage && typeof metaImage !== 'string' && <Media resource={metaImage} size="33vw" />}
+      <div className="relative aspect-[16/9] bg-muted">
+        {image ? (
+          <Media fill resource={image} imgClassName="object-cover" size="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" />
+        ) : (
+          <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_center,var(--brand)_0_12%,var(--brand-soft)_12%_24%,transparent_24%)] opacity-60" />
+        )}
       </div>
-      <div className="p-4">
-        {showCategories && hasCategories && (
-          <div className="uppercase text-sm mb-4">
-            {categories?.map((category, index) => {
-              if (typeof category === 'object') {
-                const { title: titleFromCategory } = category
-
-                const categoryTitle = titleFromCategory || 'Untitled category'
-
-                const isLast = index === categories.length - 1
-
-                return (
-                  <Fragment key={index}>
-                    {categoryTitle}
-                    {!isLast && <Fragment>, &nbsp;</Fragment>}
-                  </Fragment>
-                )
-              }
-
-              return null
-            })}
-          </div>
-        )}
-        {titleToUse && (
-          <div className="prose">
-            <h3>
-              <Link className="not-prose" href={href} ref={link.ref}>
-                {titleToUse}
-              </Link>
-            </h3>
-          </div>
-        )}
-        {description && <div className="mt-2">{description && <p>{sanitizedDescription}</p>}</div>}
+      <div className="flex flex-1 flex-col p-5">
+        <p className="flex flex-wrap items-center gap-x-2 text-xs font-semibold uppercase tracking-wide text-brand-text">
+          {doc.publishedAt && <time dateTime={doc.publishedAt}>{formatDate(doc.publishedAt)}</time>}
+          {showCategories && categories.length > 0 && <span>· {categories.map((c) => c.title).join(', ')}</span>}
+          {doc.visibility === 'members' && (
+            <span className="inline-flex items-center gap-1 text-muted-foreground">
+              · <LockIcon aria-hidden className="size-3" /> Mitglieder
+            </span>
+          )}
+        </p>
+        <H className="mt-1 text-lg font-bold leading-snug">
+          <Link href={routes.post(doc.slug)} className="after:absolute after:inset-0 after:content-[''] group-hover:underline">
+            {doc.title}
+          </Link>
+        </H>
+        {description && <p className="mt-2 line-clamp-3 text-muted-foreground">{description}</p>}
       </div>
     </article>
   )

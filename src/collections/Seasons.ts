@@ -1,6 +1,8 @@
 import type { CollectionConfig } from 'payload'
 
 import { anyone, hasRole } from '@/access'
+import { slugField } from '@/fields/slug'
+import { revalidateSiteAfterChange, revalidateSiteAfterDelete } from '@/hooks/revalidate'
 
 /** Wettkampfsaisons (z. B. „Halle 2025/26“). Grundlage für das Ergebnisarchiv. */
 export const Seasons: CollectionConfig<'seasons'> = {
@@ -18,6 +20,10 @@ export const Seasons: CollectionConfig<'seasons'> = {
     group: 'Verein',
   },
   defaultSort: '-startDate',
+  hooks: {
+    afterChange: [revalidateSiteAfterChange],
+    afterDelete: [revalidateSiteAfterDelete],
+  },
   fields: [
     { name: 'name', label: 'Bezeichnung', type: 'text', required: true, unique: true },
     {
@@ -47,5 +53,6 @@ export const Seasons: CollectionConfig<'seasons'> = {
         },
       ],
     },
+    slugField({ useAsSlug: 'name' }),
   ],
 }

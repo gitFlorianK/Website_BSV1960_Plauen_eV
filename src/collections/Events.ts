@@ -3,6 +3,7 @@ import { slugField } from '@/fields/slug'
 
 import { hasRole, publicOrMembers } from '@/access'
 import { visibilityField } from '@/fields/visibility'
+import { revalidateSiteAfterChange, revalidateSiteAfterDelete } from '@/hooks/revalidate'
 
 /** Turniere, Vereinsveranstaltungen und Sondertermine. */
 export const Events: CollectionConfig<'events'> = {
@@ -20,6 +21,10 @@ export const Events: CollectionConfig<'events'> = {
     group: 'Termine & Kurse',
   },
   defaultSort: 'startDate',
+  hooks: {
+    afterChange: [revalidateSiteAfterChange],
+    afterDelete: [revalidateSiteAfterDelete],
+  },
   fields: [
     { name: 'title', label: 'Titel', type: 'text', required: true },
     {

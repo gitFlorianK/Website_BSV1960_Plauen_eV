@@ -1,31 +1,26 @@
-import type { Config } from 'src/payload-types'
-
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import { unstable_cache } from 'next/cache'
 
-type Collection = keyof Config['collections']
+type LinkTarget = 'pages' | 'posts'
 
-async function getDocument(collection: Collection, slug: string, depth = 0) {
+/** Dokument per ID für Weiterleitungen laden – nur öffentlich lesbare Inhalte. */
+async function getDocumentById(collection: LinkTarget, id: string) {
   const payload = await getPayload({ config: configPromise })
-
-  const page = await payload.find({
-    collection,
-    depth,
-    where: {
-      slug: {
-        equals: slug,
-      },
-    },
-  })
-
-  return page.docs[0]
+  try {
+    return await payload.findByID({
+      collection,
+      id,
+      depth: 0,
+      overrideAccess: false,
+      select: { slug: true },
+    })
+  } catch {
+    return null
+  }
 }
 
-/**
- * Returns a unstable_cache function mapped with the cache tag for the slug
- */
-export const getCachedDocument = (collection: Collection, slug: string) =>
-  unstable_cache(async () => getDocument(collection, slug), [collection, slug], {
-    tags: [`${collection}_${slug}`],
+export const getCachedDocument = (collection: LinkTarget, id: string) =>
+  unstable_cache(async () => getDocumentById(collection, id), ['doc-by-id', collection, id], {
+    tags: [`${collection}_${id}`],
   })

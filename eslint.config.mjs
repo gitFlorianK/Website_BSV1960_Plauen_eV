@@ -24,20 +24,6 @@ export default defineConfig([
       ],
     },
   },
-  {
-    // Template-Komponenten, die in Phase 3 (Design) neu gebaut werden.
-    // Danach diesen Block entfernen – für neuen Code gelten die Regeln strikt.
-    files: [
-      'src/Header/Component.client.tsx',
-      'src/components/Card/index.tsx',
-      'src/providers/Theme/index.tsx',
-      'src/providers/Theme/ThemeSelector/index.tsx',
-    ],
-    rules: {
-      'react-hooks/set-state-in-effect': 'warn',
-      'react-hooks/refs': 'warn',
-    },
-  },
   globalIgnores([
     '.next/',
     'next-env.d.ts',

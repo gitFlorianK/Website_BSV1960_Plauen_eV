@@ -3,7 +3,7 @@ import type { GlobalConfig } from 'payload'
 import { anyone, hasRole } from '@/access'
 
 import { link } from '@/fields/link'
-import { revalidateFooter } from './hooks/revalidateFooter'
+import { revalidateGlobal } from '@/hooks/revalidate'
 
 export const Footer: GlobalConfig = {
   slug: 'footer',
@@ -22,7 +22,7 @@ export const Footer: GlobalConfig = {
           appearances: false,
         }),
       ],
-      maxRows: 6,
+      maxRows: 8,
       admin: {
         initCollapsed: true,
         components: {
@@ -32,6 +32,6 @@ export const Footer: GlobalConfig = {
     },
   ],
   hooks: {
-    afterChange: [revalidateFooter],
+    afterChange: [revalidateGlobal],
   },
 }

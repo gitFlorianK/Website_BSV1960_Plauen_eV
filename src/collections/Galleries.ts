@@ -3,6 +3,7 @@ import { slugField } from '@/fields/slug'
 
 import { hasRole, publicOrMembers } from '@/access'
 import { visibilityField } from '@/fields/visibility'
+import { revalidateSiteAfterChange, revalidateSiteAfterDelete } from '@/hooks/revalidate'
 
 /** Fotoalben. Bilder abgebildeter Personen nur mit Einwilligung veröffentlichen! */
 export const Galleries: CollectionConfig<'galleries'> = {
@@ -20,6 +21,10 @@ export const Galleries: CollectionConfig<'galleries'> = {
     group: 'Inhalte',
   },
   defaultSort: '-date',
+  hooks: {
+    afterChange: [revalidateSiteAfterChange],
+    afterDelete: [revalidateSiteAfterDelete],
+  },
   fields: [
     { name: 'title', label: 'Titel', type: 'text', required: true },
     {
