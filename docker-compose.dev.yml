@@ -1,0 +1,30 @@
+# Lokale Entwicklungsdienste. Die App selbst läuft auf dem Host (`pnpm dev`).
+# Ports sind bewusst nur an 127.0.0.1 gebunden.
+name: bsv1960-dev
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: bsv
+      POSTGRES_PASSWORD: bsv_dev_pw
+      POSTGRES_DB: bsv1960
+    ports:
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U bsv -d bsv1960']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Fängt alle ausgehenden Mails ab. Web-UI: http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - '127.0.0.1:1025:1025'
+      - '127.0.0.1:8025:8025'
+
+volumes:
+  pgdata:

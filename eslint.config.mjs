@@ -1,16 +1,10 @@
-import { dirname } from 'path'
-import { fileURLToPath } from 'url'
-import { FlatCompat } from '@eslint/eslintrc'
+import { defineConfig, globalIgnores } from 'eslint/config'
+import nextVitals from 'eslint-config-next/core-web-vitals'
+import nextTs from 'eslint-config-next/typescript'
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-})
-
-const eslintConfig = [
-  ...compat.extends('next/core-web-vitals', 'next/typescript'),
+export default defineConfig([
+  ...nextVitals,
+  ...nextTs,
   {
     rules: {
       '@typescript-eslint/ban-ts-comment': 'warn',
@@ -31,8 +25,26 @@ const eslintConfig = [
     },
   },
   {
-    ignores: ['.next/', 'src/payload-types.ts', 'src/payload-generated-schema.ts'],
+    // Template-Komponenten, die in Phase 3 (Design) neu gebaut werden.
+    // Danach diesen Block entfernen – für neuen Code gelten die Regeln strikt.
+    files: [
+      'src/Header/Component.client.tsx',
+      'src/components/Card/index.tsx',
+      'src/providers/Theme/index.tsx',
+      'src/providers/Theme/ThemeSelector/index.tsx',
+    ],
+    rules: {
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/refs': 'warn',
+    },
   },
-]
-
-export default eslintConfig
+  globalIgnores([
+    '.next/',
+    'next-env.d.ts',
+    'src/payload-types.ts',
+    'src/payload-generated-schema.ts',
+    'src/app/(payload)/admin/importMap.js',
+    'playwright-report/',
+    'test-results/',
+  ]),
+])

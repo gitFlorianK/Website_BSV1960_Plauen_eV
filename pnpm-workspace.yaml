@@ -1,0 +1,31 @@
+# Nur diese Pakete dürfen Install-Skripte ausführen (Supply-Chain-Schutz).
+allowBuilds:
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
+# Von pnpm angelegt: Payload 3.94.1 ist jünger als die Standard-Mindestreifezeit
+# (Supply-Chain-Schutz). Bei Payload-Updates diese Liste anpassen bzw. leeren.
+minimumReleaseAgeExclude:
+  - '@payloadcms/admin-bar@3.94.1'
+  - '@payloadcms/db-postgres@3.94.1'
+  - '@payloadcms/drizzle@3.94.1'
+  - '@payloadcms/graphql@3.94.1'
+  - '@payloadcms/live-preview-react@3.94.1'
+  - '@payloadcms/live-preview@3.94.1'
+  - '@payloadcms/next@3.94.1'
+  - '@payloadcms/plugin-form-builder@3.94.1'
+  - '@payloadcms/plugin-nested-docs@3.94.1'
+  - '@payloadcms/plugin-redirects@3.94.1'
+  - '@payloadcms/plugin-search@3.94.1'
+  - '@payloadcms/plugin-seo@3.94.1'
+  - '@payloadcms/richtext-lexical@3.94.1'
+  - '@payloadcms/translations@3.94.1'
+  - '@payloadcms/ui@3.94.1'
+  - payload@3.94.1
+# Sicherheits-Overrides für transitive Abhängigkeiten (pnpm audit).
+# Entfernen, sobald Payload/Vitest selbst gepatchte Versionen mitbringen.
+overrides:
+  happy-dom: ^21.0.4
+  dompurify: ^3.4.18
+  postcss-selector-parser@<6.1.5: ^6.1.6
+  esbuild@<0.25.0: ^0.25.12
