@@ -14,6 +14,8 @@ test.use({ extraHTTPHeaders: { 'x-real-ip': ip } })
 const stamp = Date.now()
 const member = { email: `e2e-mitglied-${stamp}@test.local`, name: 'Paula Pfeil', password: 'Wolke Tanne Zielscheibe' }
 const eventSlug = `e2e-turnier-${stamp}`
+/** Aus der Einrichtung, für den Umzug-Test (Tests dieser Datei laufen nacheinander). */
+const twoFactor = { secret: '', codes: [] as string[] }
 
 async function latestMailTo(request: APIRequestContext, to: string) {
   let id: string | undefined
@@ -92,6 +94,7 @@ test('Zwei-Faktor-Anmeldung einrichten und damit anmelden', async ({ page }) => 
   await main.getByRole('button', { name: 'Code bestätigen' }).click()
   await expect(main.getByText('Deine Wiederherstellungscodes')).toBeVisible()
   await expect(main.locator('ul.font-mono li')).toHaveCount(8)
+  Object.assign(twoFactor, { secret, codes: await main.locator('ul.font-mono li').allInnerTexts() })
   await main.getByRole('button', { name: 'Ich habe die Codes gesichert' }).click()
   await expect(main.getByText('Die Zwei-Faktor-Anmeldung ist aktiv.')).toBeVisible()
 
@@ -100,6 +103,56 @@ test('Zwei-Faktor-Anmeldung einrichten und damit anmelden', async ({ page }) => 
   await expect(page).toHaveURL(/\/login\?abgemeldet=1/)
 
   await login({ page, user: { ...member, totpSecret: secret } })
+  await expect(main.getByRole('heading', { level: 1 })).toHaveText('Hallo Paula!')
+})
+
+test('Zwei-Faktor-Anmeldung auf ein neues Handy übertragen (nur mit Passwort und Code)', async ({ page }) => {
+  // Jeder App-Code gilt nur einmal und nur ±30 s – mehrere Schritte nacheinander gehen deshalb mit
+  // Wiederherstellungscodes (der Weg bei verlorenem Handy)
+  const [loginCode, cancelCode, moveCode] = twoFactor.codes
+  await login({ page, user: member, code: loginCode, redirect: '/mitglieder/sicherheit' })
+  const main = page.locator('main')
+  const move = main.locator('details', { hasText: 'Auf ein neues Handy übertragen' })
+  const startMove = async (code: string) => {
+    if (!(await move.getByLabel('Code aus der App').isVisible())) await move.locator('summary').click()
+    await move.getByLabel('Passwort', { exact: true }).fill(member.password)
+    await move.getByLabel('Code aus der App').fill(code)
+    await move.getByRole('button', { name: 'Weiter zum QR-Code' }).click()
+  }
+
+  await startMove('000000')
+  await expect(main.getByText('Passwort oder Code ist falsch.')).toBeVisible()
+  await expect(main.getByRole('img', { name: /QR-Code/ })).toHaveCount(0)
+
+  // Abbrechen: das alte Handy gilt weiter
+  await startMove(cancelCode)
+  await expect(main.getByText('Nimm dazu dein neues Handy.', { exact: false })).toBeVisible()
+  await main.getByRole('button', { name: 'Abbrechen' }).click()
+  await expect(main.getByText('Abgebrochen – dein bisheriges Handy gilt weiter.')).toBeVisible()
+
+  // Übertragen und mit der neuen App bestätigen
+  await startMove(moveCode)
+  const newSecret = (await main.locator('p.font-mono').innerText()).replace(/\s/g, '')
+  expect(newSecret).not.toBe(twoFactor.secret)
+  await main.getByLabel('Sechsstelliger Code').fill(totp(newSecret))
+  await main.getByRole('button', { name: 'Code bestätigen' }).click()
+  await expect(main.getByText(/läuft jetzt über dein neues Handy/)).toBeVisible()
+  await expect(main.locator('ul.font-mono li')).toHaveCount(8)
+  await main.getByRole('button', { name: 'Ich habe die Codes gesichert' }).click()
+  await page.getByRole('button', { name: 'Abmelden' }).first().click()
+  await expect(page).toHaveURL(/\/login\?abgemeldet=1/)
+
+  // Altes Handy und alte Wiederherstellungscodes gelten nicht mehr, das neue Handy schon
+  await page.goto('/login')
+  await main.getByLabel('E-Mail-Adresse').fill(member.email)
+  await main.getByLabel('Passwort', { exact: true }).fill(member.password)
+  await main.getByRole('button', { name: 'Anmelden' }).click()
+  for (const code of [totp(twoFactor.secret), twoFactor.codes[3]]) {
+    await main.getByLabel('Bestätigungscode').fill(code)
+    await main.getByRole('button', { name: 'Code bestätigen' }).click()
+    await expect(main.getByText(/Code ist ungültig/)).toBeVisible()
+  }
+  await login({ page, user: { ...member, totpSecret: newSecret } })
   await expect(main.getByRole('heading', { level: 1 })).toHaveText('Hallo Paula!')
 })
 

@@ -10,12 +10,13 @@ import { audit } from '@/lib/audit'
 import { clientIp } from '@/lib/clientIp'
 import { routes } from '@/utilities/routes'
 
-import { changePassword, login, requestPasswordReset, resetPasswordWithToken, revokeSessions, verifyPassword } from './service'
+import { changePassword, login, requestPasswordReset, resetPasswordWithToken, revokeSessions } from './service'
 import { getSessionUser, safeReturnPath } from './session'
 import {
-  checkSecondFactor,
+  cancelTwoFactorSetup,
   confirmTwoFactorSetup,
   disableTwoFactor,
+  reauthenticate,
   regenerateRecoveryCodes,
   startTwoFactorSetup,
 } from './twoFactor'
@@ -168,8 +169,8 @@ export async function logoutOtherDevicesAction(_prev: SimpleState, _formData: Fo
 
 export type TwoFactorState =
   | { step: 'idle'; error?: string; message?: string }
-  | { step: 'scan'; secret: string; qr: boolean[][]; error?: string }
-  | { step: 'codes'; recoveryCodes: string[] }
+  | { step: 'scan'; secret: string; qr: boolean[][]; moving?: boolean; error?: string }
+  | { step: 'codes'; recoveryCodes: string[]; moved?: boolean }
 
 /** Ein Einstiegspunkt für alle 2FA-Schritte (Feld `intent`), damit ein useActionState genügt. */
 export async function twoFactorAction(prev: TwoFactorState, formData: FormData): Promise<TwoFactorState> {
@@ -178,9 +179,18 @@ export async function twoFactorAction(prev: TwoFactorState, formData: FormData):
   const payload = await payloadP()
   const intent = String(formData.get('intent') ?? '')
 
-  if (intent === 'start') {
-    const { secret, qr } = await startTwoFactorSetup(payload, user)
-    return { step: 'scan', secret, qr }
+  const reauth = { password: formData.get('password'), code: formData.get('code') }
+
+  if (intent === 'start' || intent === 'move') {
+    // Bei aktiver 2FA (Umzug) prüft startTwoFactorSetup Passwort und Code selbst
+    const res = await startTwoFactorSetup(payload, user, intent === 'move' ? reauth : undefined)
+    if (!res.ok) return { step: 'idle', error: intent === 'move' ? 'Passwort oder Code ist falsch.' : 'Bitte lade die Seite neu.' }
+    return { step: 'scan', secret: res.secret, qr: res.qr, moving: intent === 'move' }
+  }
+
+  if (intent === 'cancel') {
+    await cancelTwoFactorSetup(payload, user.id)
+    return { step: 'idle', message: user.twoFactorEnabled ? 'Abgebrochen – dein bisheriges Handy gilt weiter.' : undefined }
   }
 
   if (intent === 'confirm') {
@@ -192,13 +202,11 @@ export async function twoFactorAction(prev: TwoFactorState, formData: FormData):
     }
     // Andere Sessions beenden: ab jetzt gilt überall der zweite Faktor
     await revokeSessions(payload, user.id, user._sid)
-    return { step: 'codes', recoveryCodes: res.recoveryCodes }
+    return { step: 'codes', recoveryCodes: res.recoveryCodes, moved: prev.step === 'scan' && prev.moving }
   }
 
   if (intent === 'regenerate' || intent === 'disable') {
-    const okPassword = await verifyPassword(payload, user.email, String(formData.get('password') ?? ''))
-    const okCode = okPassword && (await checkSecondFactor(payload, user.id, String(formData.get('code') ?? ''))) === 'ok'
-    if (!okCode) return { step: 'idle', error: 'Passwort oder Code ist falsch.' }
+    if (!(await reauthenticate(payload, user, reauth))) return { step: 'idle', error: 'Passwort oder Code ist falsch.' }
     if (intent === 'regenerate') return { step: 'codes', recoveryCodes: await regenerateRecoveryCodes(payload, user.id) }
     if ((user.roles ?? []).some((r) => TWO_FACTOR_ROLES.includes(r))) {
       return { step: 'idle', error: 'Für Vorstand und Administratoren ist die Zwei-Faktor-Anmeldung Pflicht.' }

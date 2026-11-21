@@ -6,6 +6,7 @@ import { hitRateLimit } from '@/lib/rateLimit'
 import type { User } from '@/payload-types'
 
 import { decryptSecret, encryptSecret, generateRecoveryCodes, hashRecoveryCode, looksLikeRecoveryCode } from './crypto'
+import { verifyPassword } from './service'
 import { generateTotpSecret, otpauthUri, verifyTotp } from './totp'
 
 /*
@@ -85,13 +86,45 @@ export async function remainingRecoveryCodes(payload: Payload, userId: number): 
   return Array.isArray(user?.twoFactorRecoveryCodes) ? user.twoFactorRecoveryCodes.length : 0
 }
 
-/** Schritt 1 der Einrichtung: neues Geheimnis (noch nicht aktiv) + QR-Code. */
-export async function startTwoFactorSetup(payload: Payload, user: Pick<User, 'id' | 'email'>) {
+/**
+ * Erneute Bestätigung mit Passwort und zweitem Faktor (App-Code oder Wiederherstellungscode).
+ * Voraussetzung für jede Änderung an einer aktiven Zwei-Faktor-Anmeldung – eine erbeutete Sitzung
+ * allein darf sie weder abschalten noch auf ein anderes Gerät umziehen.
+ */
+export async function reauthenticate(
+  payload: Payload,
+  user: Pick<User, 'id' | 'email'>,
+  input: { password: unknown; code: unknown },
+): Promise<boolean> {
+  if (!(await verifyPassword(payload, user.email, String(input.password ?? '')))) return false
+  return (await checkSecondFactor(payload, user.id, String(input.code ?? ''))) === 'ok'
+}
+
+export type SetupStart = { ok: true; secret: string; uri: string; qr: boolean[][] } | { ok: false }
+
+/**
+ * Schritt 1 der Einrichtung: neues Geheimnis (noch nicht aktiv) + QR-Code.
+ * Ist die Zwei-Faktor-Anmeldung schon aktiv (Umzug auf ein neues Handy), nur mit `reauth`; das
+ * bisherige Geheimnis gilt weiter, bis der Code der neuen App bestätigt ist.
+ */
+export async function startTwoFactorSetup(
+  payload: Payload,
+  user: Pick<User, 'id' | 'email'>,
+  reauth?: { password: unknown; code: unknown },
+): Promise<SetupStart> {
+  const current = await loadSecrets(payload, user.id)
+  if (!current) return { ok: false }
+  if (current.twoFactorEnabled && !(reauth && (await reauthenticate(payload, user, reauth)))) return { ok: false }
   const secret = generateTotpSecret()
   await save(payload, user.id, { twoFactorPendingSecret: encryptSecret(secret) })
   const uri = otpauthUri(secret, user.email)
   // QR als Matrix (Rendering als React-SVG – kein innerHTML, keine data:-URL)
-  return { secret, uri, qr: encode(uri, { border: 2, ecc: 'M' }).data }
+  return { ok: true, secret, uri, qr: encode(uri, { border: 2, ecc: 'M' }).data }
+}
+
+/** Begonnene Einrichtung verwerfen; eine aktive Zwei-Faktor-Anmeldung bleibt unverändert. */
+export async function cancelTwoFactorSetup(payload: Payload, userId: number): Promise<void> {
+  await save(payload, userId, { twoFactorPendingSecret: null })
 }
 
 /** Schritt 2: Code aus der App bestätigt das Geheimnis → aktiv; liefert neue Wiederherstellungscodes. */
@@ -113,7 +146,9 @@ export async function confirmTwoFactorSetup(
     twoFactorLastStep: step,
     twoFactorRecoveryCodes: hashes,
   })
-  await audit(payload, { action: 'twoFactor.enabled', actor: user, target: { collection: 'users', id: userId } })
+  // War sie schon aktiv, ist das ein Umzug: altes Geheimnis und alte Wiederherstellungscodes sind ab jetzt ungültig
+  const action = user.twoFactorEnabled ? 'twoFactor.moved' : 'twoFactor.enabled'
+  await audit(payload, { action, actor: user, target: { collection: 'users', id: userId } })
   return { ok: true, recoveryCodes: codes }
 }
 

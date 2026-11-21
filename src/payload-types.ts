@@ -1079,6 +1079,7 @@ export interface AuditLog {
     | 'password.reset'
     | 'password.changed'
     | 'twoFactor.enabled'
+    | 'twoFactor.moved'
     | 'twoFactor.disabled'
     | 'twoFactor.codesRegenerated'
     | 'twoFactor.reset'

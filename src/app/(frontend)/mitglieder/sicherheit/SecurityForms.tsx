@@ -22,7 +22,9 @@ export function TwoFactorPanel({ enabled, required, remainingCodes, autoStart }:
   }, [autoStart])
 
   if (state.step === 'scan') return <ScanStep state={state} action={action} pending={pending} />
-  if (state.step === 'codes') return <RecoveryCodes codes={state.recoveryCodes} onDone={() => router.refresh()} />
+  if (state.step === 'codes') {
+    return <RecoveryCodes codes={state.recoveryCodes} moved={state.moved} onDone={() => router.refresh()} />
+  }
 
   return (
     <div className="grid gap-6">
@@ -37,6 +39,16 @@ export function TwoFactorPanel({ enabled, required, remainingCodes, autoStart }:
               {remainingCodes <= 2 && ' Erzeuge bald neue.'}
             </p>
           </Notice>
+          <details className="rounded-lg border border-border p-4">
+            <summary className="cursor-pointer font-medium">Auf ein neues Handy übertragen</summary>
+            <ConfirmForm
+              action={action}
+              pending={pending}
+              intent="move"
+              label="Weiter zum QR-Code"
+              hint="Dein bisheriges Handy gilt weiter, bis du die neue App mit einem Code bestätigt hast. Altes Handy nicht mehr da? Dann gib statt des Codes einen deiner Wiederherstellungscodes ein."
+            />
+          </details>
           <details className="rounded-lg border border-border p-4">
             <summary className="cursor-pointer font-medium">Neue Wiederherstellungscodes erzeugen</summary>
             <ConfirmForm action={action} pending={pending} intent="regenerate" label="Neue Codes erzeugen" />
@@ -77,6 +89,7 @@ function ScanStep({
           <div>
             <p className="font-semibold">1. QR-Code scannen</p>
             <p className="mt-1 text-muted-foreground">
+              {state.moving && 'Nimm dazu dein neues Handy. '}
               Öffne deine Authenticator-App, tippe auf „Hinzufügen“ und scanne den Code. Scannen geht nicht? Dann gib
               diesen Schlüssel von Hand ein:
             </p>
@@ -87,7 +100,6 @@ function ScanStep({
         </li>
       </ol>
       <form action={action} className="grid gap-4">
-        <input type="hidden" name="intent" value="confirm" />
         <p className="font-semibold">2. Code aus der App eingeben</p>
         {state.error && <Notice tone="error">{state.error}</Notice>}
         <TextField
@@ -101,9 +113,20 @@ function ScanStep({
           autoComplete="one-time-code"
           className="max-w-xs"
         />
-        <div>
-          <Button type="submit" size="lg" disabled={pending}>
+        {state.moving && (
+          <p className="text-sm text-muted-foreground">
+            Mit der Bestätigung gilt nur noch das neue Handy; du bekommst neue Wiederherstellungscodes und wirst auf allen
+            anderen Geräten abgemeldet.
+          </p>
+        )}
+        <div className="flex flex-wrap gap-3">
+          {/* intent über den Absende-Knopf (Enter im Codefeld nimmt den ersten, also „bestätigen“) */}
+          <Button type="submit" size="lg" name="intent" value="confirm" disabled={pending}>
             {pending ? 'Wird geprüft …' : 'Code bestätigen'}
+          </Button>
+          {/* formNoValidate: Abbrechen geht auch ohne Code im Pflichtfeld */}
+          <Button type="submit" size="lg" variant="outline" name="intent" value="cancel" formNoValidate disabled={pending}>
+            Abbrechen
           </Button>
         </div>
       </form>
@@ -130,7 +153,7 @@ function QrCode({ matrix }: { matrix: boolean[][] }) {
   )
 }
 
-function RecoveryCodes({ codes, onDone }: { codes: string[]; onDone: () => void }) {
+function RecoveryCodes({ codes, moved, onDone }: { codes: string[]; moved?: boolean; onDone: () => void }) {
   const download = () => {
     const text = `Wiederherstellungscodes – BSV 1960 Plauen\nJeder Code funktioniert genau einmal.\n\n${codes.join('\n')}\n`
     const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }))
@@ -141,7 +164,11 @@ function RecoveryCodes({ codes, onDone }: { codes: string[]; onDone: () => void 
   return (
     <div className="grid gap-5">
       <Notice tone="success">
-        <p className="font-semibold">Fertig – die Zwei-Faktor-Anmeldung ist aktiv.</p>
+        <p className="font-semibold">
+          {moved
+            ? 'Fertig – die Zwei-Faktor-Anmeldung läuft jetzt über dein neues Handy. Codes vom alten Handy und alte Wiederherstellungscodes gelten nicht mehr.'
+            : 'Fertig – die Zwei-Faktor-Anmeldung ist aktiv.'}
+        </p>
       </Notice>
       <div>
         <p className="font-semibold">Deine Wiederherstellungscodes</p>
@@ -173,16 +200,19 @@ function ConfirmForm({
   intent,
   label,
   variant,
+  hint,
 }: {
   action: (fd: FormData) => void
   pending: boolean
-  intent: 'regenerate' | 'disable'
+  intent: 'move' | 'regenerate' | 'disable'
   label: string
   variant?: 'outline'
+  hint?: string
 }) {
   return (
     <form action={action} className="mt-4 grid max-w-md gap-4">
       <input type="hidden" name="intent" value={intent} />
+      {hint && <p className="text-sm">{hint}</p>}
       <p className="text-sm text-muted-foreground">Zur Sicherheit: bitte Passwort und aktuellen Code eingeben.</p>
       <PasswordField name="password" label="Passwort" autoComplete="current-password" />
       <TextField name="code" label="Code aus der App" required inputMode="numeric" autoComplete="one-time-code" maxLength={20} idPrefix={intent} />

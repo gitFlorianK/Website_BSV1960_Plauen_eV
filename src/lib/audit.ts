@@ -18,6 +18,7 @@ export const AUDIT_ACTIONS = {
   'password.reset': 'Passwort per Link neu gesetzt',
   'password.changed': 'Passwort geändert',
   'twoFactor.enabled': 'Zwei-Faktor-Anmeldung eingerichtet',
+  'twoFactor.moved': 'Zwei-Faktor-Anmeldung auf neues Gerät übertragen',
   'twoFactor.disabled': 'Zwei-Faktor-Anmeldung ausgeschaltet',
   'twoFactor.codesRegenerated': 'Neue Wiederherstellungscodes erzeugt',
   'twoFactor.reset': 'Zwei-Faktor-Anmeldung zurückgesetzt (durch Vorstand)',

@@ -212,12 +212,12 @@ Basis-Images:
 ### Mails kommen nicht an
 App-Log nach Mail-Fehlern durchsuchen und die SMTP-Zugangsdaten prüfen. Landen Mails im Spam, SPF/DKIM/DMARC der Absenderdomain prüfen. Formulareingänge gehen dabei nicht verloren: Sie stehen im Admin-Bereich (Kontaktanfragen, Mitgliedsanträge, Kursanmeldungen).
 
-### Jemand hat sein Zwei-Faktor-Gerät verloren
-1. Die Person meldet sich mit einem ihrer **Wiederherstellungscodes** statt des App-Codes an.
-   - Mitglieder schalten danach unter Mitgliederbereich → Sicherheit die Zwei-Faktor-Anmeldung aus (Passwort + noch ein Wiederherstellungscode) und richten sie auf dem neuen Gerät neu ein.
-   - Admins und Vorstände dürfen sie nicht ausschalten. Sie bitten ein Vorstandsmitglied um das Zurücksetzen (Schritt 2) und richten sie danach neu ein.
-2. Ohne Codes, oder bei Admins und Vorständen: Ein Vorstandsmitglied öffnet im Admin den Benutzer und wählt „Zwei-Faktor-Anmeldung zurücksetzen“. Vorher die **Identität persönlich oder telefonisch prüfen**, nicht nur per Mail.
-3. Hat kein Admin mehr Zugang: Auf dem Server ein neues Admin-Konto anlegen. Danach die alten Konten im Admin prüfen.
+### Neues Handy oder Zwei-Faktor-Gerät verloren
+1. **Handywechsel** (altes Handy noch da): Die Person geht im Mitgliederbereich auf Sicherheit → „Auf ein neues Handy übertragen“. Dort gibt sie Passwort und den aktuellen Code vom alten Handy ein und scannt den QR-Code mit dem neuen Handy. Das alte Handy gilt, bis der erste Code der neuen App bestätigt ist. Das geht auch für Admins und Vorstände; niemand sonst muss helfen.
+2. **Handy verloren:** Gleicher Weg, aber statt des App-Codes einen der **Wiederherstellungscodes** eingeben, für die Anmeldung und für die Übertragung (zwei verschiedene Codes).
+   - Mit der Bestätigung gelten das alte Handy und alle alten Wiederherstellungscodes nicht mehr, und alle anderen Sitzungen werden beendet. Im Sicherheitsprotokoll steht „Zwei-Faktor-Anmeldung auf neues Gerät übertragen“.
+3. Ohne Codes: Ein Vorstandsmitglied öffnet im Admin den Benutzer und wählt „Zwei-Faktor-Anmeldung zurücksetzen“. Vorher die **Identität persönlich oder telefonisch prüfen**, nicht nur per Mail.
+4. Hat kein Admin mehr Zugang: Auf dem Server ein neues Admin-Konto anlegen. Danach die alten Konten im Admin prüfen.
    ```bash
    dc run --rm -e ADMIN_EMAIL=… -e ADMIN_NAME="…" tools user:create-admin
    ```

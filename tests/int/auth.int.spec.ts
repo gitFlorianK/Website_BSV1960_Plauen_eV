@@ -13,7 +13,13 @@ import { checkPassword } from '@/lib/auth/password'
 import { changePassword, login, requestPasswordReset, resetPasswordWithToken, revokeSessions, verifyPassword } from '@/lib/auth/service'
 import { safeReturnPath } from '@/lib/auth/session'
 import { base32Decode, base32Encode, hotp, timeStep, totp, verifyTotp } from '@/lib/auth/totp'
-import { checkSecondFactor, confirmTwoFactorSetup, remainingRecoveryCodes, startTwoFactorSetup } from '@/lib/auth/twoFactor'
+import {
+  cancelTwoFactorSetup,
+  checkSecondFactor,
+  confirmTwoFactorSetup,
+  remainingRecoveryCodes,
+  startTwoFactorSetup,
+} from '@/lib/auth/twoFactor'
 import { derivedSecret } from '@/lib/secrets'
 import config from '@/payload.config'
 import type { User } from '@/payload-types'
@@ -64,7 +70,9 @@ const raw = async (id: number) =>
 
 /** Richtet 2FA wie über die Oberfläche ein; liefert Geheimnis und Wiederherstellungscodes. */
 async function enableTwoFactor(user: Pick<User, 'id' | 'email'>) {
-  const { secret } = await startTwoFactorSetup(payload, user)
+  const started = await startTwoFactorSetup(payload, user)
+  if (!started.ok) throw new Error('2FA-Start fehlgeschlagen')
+  const { secret } = started
   const res = await confirmTwoFactorSetup(payload, user.id, totp(secret))
   if (!res.ok) throw new Error('2FA-Einrichtung fehlgeschlagen')
   return { secret, codes: res.recoveryCodes }
@@ -282,6 +290,70 @@ describe('Zwei-Faktor-Anmeldung', () => {
     await startTwoFactorSetup(payload, u)
     expect(await confirmTwoFactorSetup(payload, u.id, '000000')).toEqual({ ok: false })
     expect((await raw(u.id)).twoFactorEnabled).toBe(false)
+  })
+
+  const pending = async (id: number) =>
+    ((await raw(id)) as { twoFactorPendingSecret?: string | null }).twoFactorPendingSecret ?? null
+
+  it('Umzug auf ein neues Handy: nur mit Passwort und Code, altes Handy gilt bis zur Bestätigung', async () => {
+    // Nur die Uhr vortäuschen: jeder Code gilt einmal und nur ±1 Zeitschritt – je Prüfung 30 s weiter
+    vi.useFakeTimers({ toFake: ['Date'], now: Date.now() })
+    const next = (secret: string) => {
+      vi.setSystemTime(Date.now() + 30_000)
+      return totp(secret)
+    }
+    try {
+      const u = await createUser()
+      const { secret: oldSecret, codes: oldCodes } = await enableTwoFactor(u)
+
+      // Eine Sitzung allein (z. B. erbeutet) reicht nicht – es wird kein neues Geheimnis hinterlegt
+      expect(await startTwoFactorSetup(payload, u)).toEqual({ ok: false })
+      expect(await startTwoFactorSetup(payload, u, { password: 'falsch-falsch-falsch', code: next(oldSecret) })).toEqual({ ok: false })
+      expect(await startTwoFactorSetup(payload, u, { password: PASSWORD, code: '000000' })).toEqual({ ok: false })
+      expect(await pending(u.id)).toBeNull()
+
+      const started = await startTwoFactorSetup(payload, u, { password: PASSWORD, code: totp(oldSecret) })
+      if (!started.ok) throw new Error('Umzug nicht gestartet')
+      expect(started.secret).not.toBe(oldSecret)
+      // Bis zur Bestätigung gilt das alte Handy weiter
+      expect(await checkSecondFactor(payload, u.id, next(oldSecret))).toBe('ok')
+      expect(await confirmTwoFactorSetup(payload, u.id, '000000')).toEqual({ ok: false })
+      expect(await checkSecondFactor(payload, u.id, next(oldSecret))).toBe('ok')
+
+      expect((await confirmTwoFactorSetup(payload, u.id, totp(started.secret))).ok).toBe(true)
+      // Danach: nur noch das neue Handy und die neuen Wiederherstellungscodes
+      expect(await checkSecondFactor(payload, u.id, next(oldSecret))).toBe('invalid')
+      expect(await checkSecondFactor(payload, u.id, oldCodes[0])).toBe('invalid')
+      expect(await checkSecondFactor(payload, u.id, next(started.secret))).toBe('ok')
+      expect(await remainingRecoveryCodes(payload, u.id)).toBe(8)
+      expect((await raw(u.id)).twoFactorEnabled).toBe(true)
+
+      const log = await payload.find({
+        collection: 'audit-log',
+        where: { targetId: { equals: String(u.id) }, action: { in: ['twoFactor.enabled', 'twoFactor.moved'] } },
+        sort: 'createdAt',
+      })
+      expect(log.docs.map((d) => d.action)).toEqual(['twoFactor.enabled', 'twoFactor.moved'])
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('Umzug bei verlorenem Handy mit Wiederherstellungscode; Abbrechen lässt alles beim Alten', async () => {
+    const u = await createUser()
+    const { secret, codes } = await enableTwoFactor(u)
+
+    const started = await startTwoFactorSetup(payload, u, { password: PASSWORD, code: codes[0] })
+    if (!started.ok) throw new Error('Umzug nicht gestartet')
+    expect(await remainingRecoveryCodes(payload, u.id)).toBe(7)
+    expect(await pending(u.id)).not.toBeNull()
+
+    await cancelTwoFactorSetup(payload, u.id)
+    expect(await pending(u.id)).toBeNull()
+    expect((await raw(u.id)).twoFactorEnabled).toBe(true)
+    expect(await checkSecondFactor(payload, u.id, nextCode(secret))).toBe('ok')
+    // Das verworfene Geheimnis lässt sich nicht mehr bestätigen
+    expect(await confirmTwoFactorSetup(payload, u.id, totp(started.secret))).toEqual({ ok: false })
   })
 
   it('Vorstand ohne 2FA hat nur Mitgliedsrechte', async () => {

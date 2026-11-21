@@ -148,7 +148,9 @@ describe('Sicherheitsprotokoll', () => {
 
   it('protokolliert 2FA-Fehlversuche, auch wenn der Login zurückgerollt wird', async () => {
     const u = await createUser()
-    const { secret } = await startTwoFactorSetup(payload, u)
+    const started = await startTwoFactorSetup(payload, u)
+    if (!started.ok) throw new Error('2FA-Start fehlgeschlagen')
+    const { secret } = started
     await confirmTwoFactorSetup(payload, u.id, totp(secret))
     await login(payload, { email: u.email, password: PASSWORD, code: '000000' }, ctx())
     expect(await actions(u.id)).toEqual(['user.created', 'twoFactor.enabled', 'login.twoFactorFailed'])
