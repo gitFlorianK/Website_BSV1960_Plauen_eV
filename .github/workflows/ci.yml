@@ -58,6 +58,86 @@ jobs:
       - run: pnpm test:int
       - run: pnpm build
 
+  # Browser-Tests gegen frisch migrierte Datenbank mit importierten Altinhalten (Platzhalterbilder,
+  # kein Zugriff auf die alte Website) und Mailpit für Einladungs-/Bestätigungsmails
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: bsv
+          POSTGRES_PASSWORD: bsv_ci_pw
+          POSTGRES_DB: bsv1960
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bsv -d bsv1960"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      mailpit:
+        image: axllent/mailpit:v1.34
+        ports:
+          - 1025:1025
+          - 8025:8025
+
+    env:
+      DATABASE_URL: postgres://bsv:bsv_ci_pw@localhost:5432/bsv1960
+      PAYLOAD_SECRET: ci-only-secret-not-used-anywhere-else-0123456789
+      CRON_SECRET: ci-only-cron-secret
+      PREVIEW_SECRET: ci-only-preview-secret
+      NEXT_PUBLIC_SERVER_URL: http://localhost:3000
+      NEXT_TELEMETRY_DISABLED: '1'
+      SMTP_HOST: localhost
+      SMTP_PORT: '1025'
+      SMTP_SECURE: 'false'
+      MAIL_FROM_ADDRESS: noreply@bogensport-plauen.de
+      MAIL_FROM_NAME: BSV 1960 Plauen
+      MAILPIT_URL: http://localhost:8025
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+
+      - name: Datenbank migrieren (prüft zugleich die Migrationen) und Altinhalte importieren
+        run: |
+          pnpm payload migrate < /dev/null
+          pnpm import:legacy:placeholders
+          pnpm import:legacy < /dev/null
+
+      - name: Dev-Server starten und Routen vorkompilieren
+        run: |
+          pnpm dev > dev.log 2>&1 &
+          for _ in $(seq 1 90); do curl -sf -o /dev/null http://127.0.0.1:3000/robots.txt && break; sleep 2; done
+          for p in / /verein /aktuelles /termine /galerie /kontakt /suche /login /mitglieder /admin/login /gibt-es-nicht; do
+            curl -s -o /dev/null -w "%{http_code} $p\n" --max-time 180 "http://127.0.0.1:3000$p"
+          done
+
+      - run: pnpm test:e2e --reporter=line,html
+
+      - name: Bericht und Server-Log bei Fehlern
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-bericht
+          path: |
+            playwright-report/
+            test-results/
+            dev.log
+          retention-days: 7
+
   # Produktions-Image bauen (ohne Datenbank, wie auf dem Server) und auf bekannte Lücken prüfen
   image:
     runs-on: ubuntu-latest
@@ -79,7 +159,7 @@ jobs:
         run: |
           docker run -d --name app -e PAYLOAD_SECRET=ci-only-secret-not-used-anywhere-else-0123456789 \
             -e DATABASE_URL=postgres://x:y@127.0.0.1:1/none bsv1960-app:ci
-          for i in $(seq 1 30); do
+          for _ in $(seq 1 30); do
             docker exec app wget -q --spider http://127.0.0.1:3000/robots.txt && exit 0
             sleep 2
           done

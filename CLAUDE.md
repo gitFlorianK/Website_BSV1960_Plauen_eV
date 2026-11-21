@@ -27,6 +27,7 @@ pnpm test:int tests/int/access.int.spec.ts      # einzelne Testdatei (ohne `--`!
 pnpm test:int -t "Vorstand"                     # einzelne Testgruppe/Test nach Name
 pnpm test:e2e             # Playwright (tests/e2e, nutzt laufenden Dev-Server; erwartet importierte Altinhalte)
 pnpm import:legacy:fetch  # Bilder der alten Website nach legacy-import/ (gitignored) laden
+pnpm import:legacy:placeholders  # stattdessen Platzhalterbilder erzeugen (CI, ohne Netz)
 pnpm import:legacy        # Altinhalte importieren (wiederholbar, upsert; gibt [PRÜFEN]-Liste aus)
 ADMIN_EMAIL=… ADMIN_NAME="…" pnpm user:create-admin   # erstes Admin-Konto + Einladungslink (ohne SMTP nur ausgegeben)
 pnpm generate:types       # nach Schemaänderungen: src/payload-types.ts neu erzeugen
@@ -87,5 +88,6 @@ Mailpit-Web-UI (alle lokal versendeten Mails): http://localhost:8025
 - Design: Vereinsfarben als Tailwind-Tokens (`brand`, `brand-text` für Orange als Text, `navy`, `ink`) in `globals.css`; Orange (`brand`) nie als Textfarbe auf Weiß (Kontrast). Nur helles Theme. Ansprache auf der Website: „du“.
 - Neue/geänderte Zugriffsregeln immer in `tests/int/access.int.spec.ts` abdecken (Rolle × Operation, positiv und negativ).
 - Tests, die Mails auslösen, fangen `payload.sendEmail` per `vi.spyOn` ab (siehe `tests/int/forms.int.spec.ts`); E2E-Tests setzen je Lauf eine eigene `x-real-ip`, damit Rate-Limits nicht greifen, und lesen Mails über die Mailpit-API.
+- E2E läuft in der CI (Job `e2e`) auf frisch migrierter DB mit Platzhalterbildern und einem Worker; `tests/helpers/global-setup.ts` legt ein gesperrtes Basiskonto an, weil auf leerer DB das erste Konto automatisch Admin wird.
 - E2E-Tests laden die Payload-Config nicht selbst (Playwright lädt sie als natives ESM, `next/cache` ist dort nicht auflösbar); Testdaten über `seed()` in `tests/helpers/seedUser.ts` (→ `payload run tests/helpers/seed-cli.ts`). Logins im E2E über `/login`, für Admins mit TOTP aus dem Seed-Geheimnis. Lokal akzeptiert `csrf` `localhost` und `127.0.0.1`.
 - Vitest läuft in der `node`-Umgebung (nicht jsdom: Payload-Uploads scheitern sonst an Buffer-Realms); `next/cache` ist in `vitest.setup.ts` gemockt.

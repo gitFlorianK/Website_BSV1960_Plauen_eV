@@ -154,8 +154,9 @@ Reihenfolge: erst als **Staging** (z. B. `neu.bogensport-plauen.de`, mit Passwor
 Abhängigkeiten aktualisiert Renovate per Pull Request (`renovate.json`; die Renovate-App muss im GitHub-Repository einmal freigeschaltet werden). Die CI prüft jeden Pull Request:
 - `pnpm audit`, Lint, Typecheck, Integrationstests, Build
 - Produktions-Image bauen, mit Trivy auf bekannte Lücken scannen, Startprobe
+- Browser-Tests (Playwright) auf frisch migrierter Datenbank mit importierten Inhalten; bei Fehlern liegen Bericht und Server-Log als Artefakt `e2e-bericht` am CI-Lauf
 
-Vor dem Zusammenführen größerer Updates (Payload, Next.js) lokal zusätzlich `pnpm test:e2e` laufen lassen und die Änderungsprotokolle lesen. Bei Payload-Updates mit Schemaänderungen muss eine Migration entstehen (`pnpm payload migrate:create …`, siehe CLAUDE.md). Bei Payload-Updates außerdem die Liste `minimumReleaseAgeExclude` in `pnpm-workspace.yaml` anpassen.
+Vor dem Zusammenführen größerer Updates (Payload, Next.js) die Änderungsprotokolle lesen und die Seite einmal selbst im Browser ansehen, auch das Admin-Panel. Bei Payload-Updates mit Schemaänderungen muss eine Migration entstehen (`pnpm payload migrate:create …`, siehe CLAUDE.md). Bei Payload-Updates außerdem die Liste `minimumReleaseAgeExclude` in `pnpm-workspace.yaml` anpassen.
 
 **Auf dem Server** (als Admin-Benutzer):
 

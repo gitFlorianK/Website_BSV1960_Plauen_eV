@@ -18,6 +18,7 @@ type Task =
   | { action: 'deleteEmptyDrafts' }
   | { action: 'post'; title: string; slug: string; text: string; visibility: 'public' | 'members'; status: 'draft' | 'published' }
   | { action: 'deletePost'; slug: string }
+  | { action: 'baseUser' }
 
 const task = JSON.parse(process.env.E2E_SEED ?? '{}') as Task
 const payload = await getPayload({ config })
@@ -25,6 +26,20 @@ const context = { disableRevalidate: true }
 let result: unknown = null
 
 switch (task.action) {
+  case 'baseUser': {
+    // Auf leerer Datenbank würde sonst das nächste Testkonto automatisch Administrator
+    // (Users-Hook „erstes Konto“) – z. B. in der CI, wenn ein Test seine Konten wieder löscht.
+    // Das Basiskonto ist gesperrt und hat damit keinerlei Rechte.
+    const { totalDocs } = await payload.count({ collection: 'users' })
+    if (totalDocs === 0) {
+      await payload.create({
+        collection: 'users',
+        data: { email: 'e2e-basis@test.local', name: 'E2E Basiskonto', password: crypto.randomUUID(), roles: ['mitglied'], accountDisabled: true },
+      })
+    }
+    result = { created: totalDocs === 0 }
+    break
+  }
   case 'user': {
     await payload.delete({ collection: 'users', where: { email: { equals: task.email } } })
     const user = await payload.create({

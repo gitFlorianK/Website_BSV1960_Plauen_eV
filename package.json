@@ -10,6 +10,7 @@
     "import:legacy": "cross-env NODE_OPTIONS=--no-deprecation payload run scripts/import-legacy.ts",
     "user:create-admin": "cross-env NODE_OPTIONS=--no-deprecation payload run scripts/create-admin.ts",
     "import:legacy:fetch": "bash scripts/legacy/fetch-images.sh",
+    "import:legacy:placeholders": "tsx scripts/legacy/placeholder-images.ts",
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
     "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
     "ii": "cross-env NODE_OPTIONS=--no-deprecation pnpm --ignore-workspace install",
