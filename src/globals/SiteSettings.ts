@@ -84,6 +84,13 @@ export const SiteSettings: GlobalConfig<'site-settings'> = {
       ],
     },
     {
+      name: 'editorialResponsible',
+      label: 'Verantwortlich für redaktionelle Inhalte (§ 18 Abs. 2 MStV)',
+      type: 'group',
+      admin: { description: 'Für Berichte und Neuigkeiten. Anschrift ist die Vereinsanschrift.' },
+      fields: [{ name: 'name', label: 'Name', type: 'text' }],
+    },
+    {
       name: 'privacyContact',
       label: 'Ansprechpartner Datenschutz',
       type: 'group',

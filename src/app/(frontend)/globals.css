@@ -118,6 +118,9 @@
   h6 {
     font-weight: unset;
     font-size: unset;
+    /* Lange deutsche Komposita („Datenschutzerklärung“) auf schmalen Bildschirmen trennen */
+    hyphens: auto;
+    overflow-wrap: break-word;
   }
   /* Deutlich sichtbarer Tastaturfokus (WCAG 2.4.7 / 2.4.11) */
   :focus-visible {

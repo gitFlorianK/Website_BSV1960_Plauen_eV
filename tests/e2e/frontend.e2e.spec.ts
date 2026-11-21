@@ -69,6 +69,23 @@ test.describe('Frontend', () => {
     expect((await media.json()).docs).toEqual([])
   })
 
+  test('Rechtstexte: Pflichtangaben aus den Vereinsdaten, Fristen aus dem System', async ({ page }) => {
+    await page.goto('/impressum')
+    await expect(page.getByRole('heading', { name: 'Angaben gemäß § 5 DDG' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Vertreten durch den Vorstand/ })).toBeVisible()
+    await expect(page.getByText('Registernummer: VR 120')).toBeVisible()
+
+    await page.goto('/datenschutz')
+    await expect(page.getByRole('heading', { name: 'Verantwortlicher' })).toBeVisible()
+    const table = page.getByRole('table')
+    await expect(table.getByRole('row', { name: /ohne Bestätigung.*48 Stunden/ })).toBeVisible()
+    await expect(table.getByRole('row', { name: /Kontaktanfragen.*6 Monate/ })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Deine Rechte' })).toBeVisible()
+    // Die Formulare verlinken auf diese Seite
+    await page.goto('/kontakt')
+    await expect(page.getByRole('link', { name: 'Datenschutzhinweise' })).toHaveAttribute('href', '/datenschutz')
+  })
+
   test('404-Seite auf Deutsch', async ({ page }) => {
     const res = await page.goto('/gibt-es-nicht')
     expect(res?.status()).toBe(404)

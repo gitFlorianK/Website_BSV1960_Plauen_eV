@@ -222,13 +222,14 @@ async function run() {
       foundedOn: '1960-06-18',
       address: { careOf: 'Florian Künzel', street: 'Erich-Knauf-Str. 20', postalCode: '08525', city: 'Plauen' },
       email: 'info@bogensport-plauen.de',
-      phone: '0152-541 566 36 (ab 16:00 Uhr)',
+      phone: '0152 54156636 (ab 16 Uhr)',
       register: { court: 'Amtsgericht Plauen', number: 'VR 120' },
       board: [
         { name: 'Florian Künzel', position: 'Vorsitzender', photo: await boardPhoto('2_f_kuenzel.jpg', 'Florian Künzel'), representative: true },
         { name: 'Ronny Krauß', position: 'Stellvertretender Vorsitzender', photo: await boardPhoto('1_r_kraus.jpg', 'Ronny Krauß'), representative: true },
         { name: 'Anja Kus', position: 'Schatzmeisterin', photo: await boardPhoto('3_a_kus.jpg', 'Anja Kus'), representative: true },
       ],
+      editorialResponsible: { name: 'Florian Künzel' },
       privacyContact: { name: 'Michael Kratzsch', email: 'info@bogensport-plauen.de' },
     },
   })
@@ -322,7 +323,8 @@ async function run() {
     const doc = await upsert(payload, 'pages', { slug: { equals: page.slug } }, { ...page, _status: 'published' })
     pageIds[page.slug] = doc.id
   }
-  review.push('Datenschutzerklärung ist ein Entwurf (u. a. Log-Löschfrist 14 Tage muss zur Serverkonfiguration passen)')
+  review.push('Datenschutzerklärung ist ein Entwurf – rechtlich prüfen lassen (Liste: docs/pruefliste-verein.md)')
+  review.push('Impressum: Verantwortlich nach § 18 Abs. 2 MStV (Vorsitzender eingetragen) bestätigen')
   review.push('„Mitglied werden“: Beiträge/Beitragsordnung fehlen')
   log(`${Object.keys(pageIds).length} Seiten`)
 

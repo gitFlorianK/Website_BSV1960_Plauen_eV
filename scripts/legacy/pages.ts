@@ -285,31 +285,85 @@ export const pages = ({ heroImage }: Ids) => [
       content(
         p(bold('Entwurf – vor Veröffentlichung rechtlich prüfen lassen.')),
         p(
-          'Wir nehmen den Schutz deiner Daten ernst. Diese Website verzichtet auf Tracking, Werbung und eingebundene Inhalte von Drittanbietern (keine Google-Dienste, keine Social-Media-Plugins, keine externen Schriftarten).',
+          'Hier erfährst du, welche personenbezogenen Daten wir beim Besuch dieser Website und bei der Nutzung ihrer Funktionen verarbeiten, wozu, auf welcher Rechtsgrundlage und wie lange (Art. 13 DSGVO).',
+        ),
+        p(
+          'Kurz gesagt: Die Website läuft auf einem Server in Deutschland. Wir binden keine Inhalte von Drittanbietern ein – keine Google-Dienste, keine Social-Media-Plugins, keine externen Schriftarten, kein Tracking und keine Werbung. Cookies gibt es nur, wenn du dich anmeldest; deshalb brauchen wir kein Cookie-Banner.',
         ),
       ),
       { blockType: 'legalNotice' as const, variant: 'controller' as const },
       content(
         h('h2', 'Hosting und Server-Logdateien'),
         p(
-          'Die Website wird auf einem Server in Deutschland betrieben. Beim Aufruf werden technisch notwendige Daten (IP-Adresse, Datum und Uhrzeit, aufgerufene Seite, Browser-Kennung) verarbeitet, um die Website auszuliefern und ihre Sicherheit zu gewährleisten (Art. 6 Abs. 1 lit. f DSGVO). Server-Logdateien werden nach spätestens 14 Tagen gelöscht.',
+          'Die Website liegt bei einem Hosting-Anbieter mit Rechenzentrum in Deutschland, mit dem wir einen Vertrag zur Auftragsverarbeitung geschlossen haben (Art. 28 DSGVO). Bei jedem Aufruf verarbeitet der Server technisch notwendige Daten: IP-Adresse, Datum und Uhrzeit, aufgerufene Adresse, Statuscode, übertragene Datenmenge und die Kennung deines Browsers. Das ist nötig, um die Website auszuliefern und Angriffe zu erkennen (Art. 6 Abs. 1 lit. f DSGVO; unser berechtigtes Interesse ist ein sicherer und stabiler Betrieb).',
         ),
         h('h2', 'Cookies'),
         p(
-          'Wir verwenden ausschließlich technisch notwendige Cookies: Für angemeldete Mitglieder und Redakteure wird ein Sitzungs-Cookie gesetzt, das den Login ermöglicht (§ 25 Abs. 2 TDDDG). Es gibt keine Analyse- oder Marketing-Cookies.',
+          'Wir setzen nur dann ein Cookie, wenn du dich anmeldest: das Sitzungs-Cookie „payload-token“. Es hält dich angemeldet, ist für Skripte nicht lesbar und läuft spätestens zwei Stunden nach der Anmeldung ab (im Verwaltungsbereich wird es während der Nutzung verlängert); beim Abmelden wird es gelöscht. Im Verwaltungsbereich kann außerdem die von dir gewählte Darstellung gespeichert werden. Beides ist für den von dir gewünschten Dienst unbedingt erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG). Analyse- oder Marketing-Cookies gibt es nicht.',
         ),
-        h('h2', 'Kontakt per E-Mail'),
+        h('h2', 'Spamschutz in Formularen'),
         p(
-          'Wenn du uns per E-Mail kontaktierst, verarbeiten wir deine Angaben zur Bearbeitung der Anfrage (Art. 6 Abs. 1 lit. b bzw. f DSGVO) und löschen sie, sobald sie nicht mehr erforderlich sind.',
+          'Unsere Formulare schützen wir mit ALTCHA: Dein Browser löst dabei eine kleine Rechenaufgabe. Das läuft vollständig auf unserem Server und in deinem Browser – es werden keine Daten an Dritte übertragen und keine Cookies gesetzt. Zusätzlich begrenzen wir die Zahl der Anfragen und Anmeldeversuche. Dafür speichern wir nur einen Hashwert der IP-Adresse bzw. E-Mail-Adresse, der ohne unseren geheimen Schlüssel nicht zurückgerechnet werden kann (Art. 6 Abs. 1 lit. f DSGVO).',
         ),
-        h('h2', 'Externe Links'),
+        h('h2', 'Kontaktformular und E-Mail'),
         p(
-          'Karten verlinken wir zu OpenStreetMap; die Karte wird erst nach dem Klick auf den Link auf der Seite von OpenStreetMap geladen. Für verlinkte Websites gelten deren Datenschutzbestimmungen.',
+          'Wenn du uns über das Kontaktformular schreibst, speichern wir deinen Namen, deine E-Mail-Adresse, die freiwillige Telefonnummer, das gewählte Thema und deine Nachricht. Wir nutzen die Angaben nur, um deine Anfrage zu beantworten (Art. 6 Abs. 1 lit. b DSGVO bei Fragen zu Training, Kursen oder Mitgliedschaft, sonst lit. f). Lesen kann sie nur der Vorstand. Über neue Anfragen wird der Verein per E-Mail informiert – ohne den Inhalt deiner Anfrage. Für Anfragen per E-Mail gilt dasselbe.',
         ),
+        h('h2', 'Mitgliedsantrag'),
+        p(
+          'Für den Antrag auf Mitgliedschaft speichern wir Vor- und Nachname, Geburtsdatum, Anschrift, E-Mail-Adresse, die freiwillige Telefonnummer, deine Bogenart, ob du schon einen Anfängerkurs gemacht hast, und deine freiwillige Nachricht. Bei Minderjährigen kommen Name und Telefonnummer eines Erziehungsberechtigten sowie dessen Zustimmung hinzu. Den Zeitpunkt deiner Bestätigungen speichern wir als Nachweis. Wir verwenden die Daten, um über die Aufnahme zu entscheiden und – wenn du aufgenommen wirst – für die Mitgliederverwaltung (Art. 6 Abs. 1 lit. b DSGVO). Zugriff hat nur der Vorstand.',
+        ),
+        h('h2', 'Anmeldung zum Anfängerkurs'),
+        p(
+          'Für die Kursanmeldung speichern wir den gewählten Kurs, Vor- und Nachname, Geburtsdatum, E-Mail-Adresse, die freiwillige Telefonnummer und Nachricht sowie bei Minderjährigen die Angaben und die Zustimmung eines Erziehungsberechtigten (Art. 6 Abs. 1 lit. b DSGVO). Damit niemand eine fremde Adresse anmelden kann, schicken wir dir eine E-Mail mit Bestätigungslink; erst danach gilt die Anmeldung. Den Link speichern wir nur als Hashwert. Zugriff haben der Vorstand und die Trainer.',
+        ),
+        p(
+          'Ob im Kurs Fotos von dir bzw. deinem Kind gemacht und veröffentlicht werden dürfen, entscheidest du freiwillig (Art. 6 Abs. 1 lit. a DSGVO). Die Einwilligung kannst du jederzeit widerrufen.',
+        ),
+        h('h2', 'Mitgliederbereich'),
+        p(
+          'Mitglieder erhalten auf Einladung des Vorstands ein Konto. Dafür speichern wir Name, E-Mail-Adresse, die freiwillige Telefonnummer, deine Rollen im Verein, den Zeitpunkt der Einladung und der letzten Anmeldung sowie deine aktiven Sitzungen. Dein Passwort speichern wir nur als Hashwert. Nutzt du die Zwei-Faktor-Anmeldung, speichern wir das Geheimnis verschlüsselt und die Wiederherstellungscodes nur als Hashwert. Meldest du dich zu Turnieren oder Terminen an, speichern wir die Anmeldung mit Bogenklasse und deiner freiwilligen Notiz; sie sehen der Vorstand und die Trainer. Rechtsgrundlage ist deine Mitgliedschaft (Art. 6 Abs. 1 lit. b DSGVO).',
+        ),
+        h('h2', 'Sicherheitsprotokoll'),
+        p(
+          'Um Missbrauch zu erkennen und aufklären zu können, protokollieren wir sicherheitsrelevante Ereignisse: Anmeldungen und Fehlversuche, Änderungen an Passwort und Zwei-Faktor-Anmeldung, Änderungen an Rollen und Konten sowie Löschungen im Verwaltungsbereich. Gespeichert werden Zeitpunkt, Art des Ereignisses, das betroffene Konto und ein Hashwert der IP-Adresse. Einsehen können das Protokoll nur Administratoren (Art. 6 Abs. 1 lit. f, Art. 32 DSGVO).',
+        ),
+        h('h2', 'E-Mails der Website'),
+        p(
+          'Einladungen, Links zum Zurücksetzen des Passworts und Bestätigungen versenden wir über den Mailserver unseres E-Mail-Anbieters (Auftragsverarbeitung). Es sind reine Textnachrichten ohne Zählpixel oder Tracking-Links.',
+        ),
+        h('h2', 'Fotos, Galerien und Berichte'),
+        p(
+          'Galerien sind nur für angemeldete Mitglieder sichtbar, sofern der Verein sie nicht ausdrücklich öffentlich stellt. Fotos veröffentlichen wir nur mit Einwilligung der abgebildeten Personen, bei Minderjährigen der Erziehungsberechtigten (Art. 6 Abs. 1 lit. a DSGVO). Beim Hochladen entfernen wir eingebettete Metadaten wie Kamera- und GPS-Daten. In Berichten über Wettkämpfe nennen wir Namen und Platzierungen unserer Sportlerinnen und Sportler (Art. 6 Abs. 1 lit. f DSGVO; unser berechtigtes Interesse ist die Darstellung des Vereinslebens). Möchtest du nicht genannt oder gezeigt werden, schreib uns – wir entfernen den Eintrag umgehend.',
+        ),
+        h('h2', 'Kalender-Abo und externe Links'),
+        p(
+          'Den Terminkalender kannst du in deiner Kalender-App abonnieren. Sie ruft die Datei dann regelmäßig bei uns ab; dabei gelten die Angaben zu den Server-Logdateien. Karten verlinken wir zu OpenStreetMap – die Karte wird erst nach einem Klick auf den Link auf der Seite von OpenStreetMap geladen. Für verlinkte Websites gelten deren Datenschutzbestimmungen.',
+        ),
+        h('h2', 'Empfänger und Übermittlung'),
+        p(
+          'Deine Daten erhalten nur die zuständigen Funktionsträger des Vereins (Vorstand, bei Kursen und Terminen auch die Trainer) und unsere Auftragsverarbeiter für Hosting und E-Mail-Versand. Eine Übermittlung in Länder außerhalb der EU findet nicht statt. Wir verkaufen keine Daten und nutzen sie nicht für Werbung. Automatisierte Entscheidungen oder Profiling gibt es nicht.',
+        ),
+        p(
+          'Pflichtfelder in Formularen brauchen wir, um dein Anliegen zu bearbeiten; ohne sie können wir z. B. eine Kursanmeldung nicht annehmen. Freiwillige Angaben sind als solche gekennzeichnet.',
+        ),
+      ),
+      { blockType: 'legalNotice' as const, variant: 'retention' as const },
+      content(
         h('h2', 'Deine Rechte'),
         p(
-          'Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit sowie Widerspruch (Art. 15–21 DSGVO). Erteilte Einwilligungen kannst du jederzeit widerrufen. Außerdem kannst du dich bei einer Datenschutz-Aufsichtsbehörde beschweren, z. B. bei der Sächsischen Datenschutz- und Transparenzbeauftragten.',
+          'Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung und Datenübertragbarkeit (Art. 15–20 DSGVO). Erteilte Einwilligungen kannst du jederzeit mit Wirkung für die Zukunft widerrufen (Art. 7 Abs. 3 DSGVO). Wende dich dafür einfach an die oben genannte Adresse.',
         ),
+        p(
+          bold('Widerspruchsrecht: '),
+          'Verarbeiten wir Daten auf Grundlage unseres berechtigten Interesses (Art. 6 Abs. 1 lit. f DSGVO), kannst du aus Gründen, die sich aus deiner besonderen Situation ergeben, jederzeit widersprechen (Art. 21 DSGVO).',
+        ),
+        p(
+          'Außerdem kannst du dich bei einer Datenschutz-Aufsichtsbehörde beschweren, zum Beispiel bei der für uns zuständigen Sächsischen Datenschutz- und Transparenzbeauftragten, Devrientstraße 5, 01067 Dresden (',
+          link('https://www.datenschutz.sachsen.de', 'www.datenschutz.sachsen.de'),
+          ').',
+        ),
+        p('Stand: November 2026'),
       ),
     ],
   },

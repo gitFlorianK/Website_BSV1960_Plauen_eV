@@ -194,13 +194,14 @@ Es gibt eine Auth-Collection `users` mit dem Feld `roles` (Mehrfachauswahl).
   | Kursanmeldungen | 12 Monate nach Kursende |
   | Kontaktanfragen | nach 6 Monaten |
   | abgelehnte Mitgliedsanträge | nach 3 Monaten (seit letzter Änderung) |
+  | Turnier-/Terminanmeldungen von Mitgliedern | 12 Monate nach dem Termin |
   | Sicherheitsprotokoll | nach 12 Monaten |
 
   Umgesetzt im Job `purge-retention` (`src/lib/retention.ts`, stündlich im laufenden Produktivserver über `jobs.autoRun`; ein Sammeleintrag im Protokoll nennt nur die Anzahl).
 
 - Einwilligungen werden mit Zeitstempel gespeichert. Bei Minderjährigen ist die Einwilligung der Erziehungsberechtigten Pflicht.
 - **Fotos:** Hinweis auf Einwilligungen der abgebildeten Personen, Galerien können auf „nur Mitglieder“ gestellt werden.
-- AVV mit Hoster und Mail-Anbieter. Impressum nach § 5 DDG, neue Datenschutzerklärung (Entwurf, rechtliche Prüfung durch den Verein).
+- AVV mit Hoster und Mail-Anbieter. Impressum nach § 5 DDG und § 18 Abs. 2 MStV, neue Datenschutzerklärung (Entwurf, rechtliche Prüfung durch den Verein). Die Tabelle „Speicherdauer“ der Datenschutzerklärung rendert der Block `legalNotice` (Variante `retention`) direkt aus `RETENTION` – Fristen nur dort ändern.
 
 ## 7. Projektstruktur
 
@@ -251,7 +252,7 @@ bsv1960-website/
    - VPS einrichten (Skript in `ops/`), Caddy, Backups, Monitoring
    - Staging-Subdomain zur Abnahme, danach DNS-Umstellung der Domain
 
-**Stand:** Phasen 1–6 umgesetzt; Altinhalte (Teil von Phase 7) bereits in Phase 3 importiert.
+**Stand:** Phasen 1–7 umgesetzt (offene Inhaltspunkte des Vereins: `docs/pruefliste-verein.md`); Altinhalte (Teil von Phase 7) bereits in Phase 3 importiert.
 
 **Aus früheren Phasen übernommene Pflichten:**
 - Später (optional): `style-src` ohne `'unsafe-inline'` (ALTCHA über `altcha/external` mit eigener CSS-Datei, Style-Attribute ersetzen).

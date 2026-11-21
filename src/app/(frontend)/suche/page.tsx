@@ -90,9 +90,9 @@ export default async function SearchPage({ searchParams }: Args) {
             maxLength={100}
             required
             placeholder="z. B. Anfängerkurs, Hallenturnier …"
-            className="h-12 flex-1 rounded-md border-2 border-input bg-white px-4 text-base focus-visible:border-navy"
+            className="h-12 min-w-0 flex-1 rounded-md border-2 border-input bg-white px-4 text-base focus-visible:border-navy"
           />
-          <button type="submit" className="inline-flex h-12 items-center gap-2 rounded-md bg-brand px-5 font-semibold text-primary-foreground hover:bg-brand-hover">
+          <button type="submit" className="inline-flex h-12 shrink-0 items-center gap-2 rounded-md bg-brand px-5 font-semibold text-primary-foreground hover:bg-brand-hover">
             <SearchIcon aria-hidden className="size-5" /> Suchen
           </button>
         </form>

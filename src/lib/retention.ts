@@ -17,9 +17,16 @@ export const RETENTION = {
   unconfirmedCourseRegistrationHours: 48,
   /** Kursanmeldungen nach dem letzten Kurstermin */
   courseRegistrationMonthsAfterCourse: 12,
+  /** Turnier-/Terminanmeldungen von Mitgliedern nach dem Termin */
+  eventRegistrationMonthsAfterEvent: 12,
   contactRequestMonths: 6,
   rejectedApplicationMonths: 3,
   auditLogMonths: 12,
+  /** Zähler zur Missbrauchsabwehr (Rate-Limits, längstes Zeitfenster) */
+  rateLimitHours: 24,
+  /** Betrieb (Phase 8, Caddy/restic) – hier nur dokumentiert, damit die Datenschutzerklärung stimmt */
+  serverLogDays: 14,
+  backupDays: 30,
 } as const
 
 const monthsAgo = (now: Date, months: number) => {
@@ -29,7 +36,12 @@ const monthsAgo = (now: Date, months: number) => {
 }
 
 export type RetentionResult = Record<
-  'unconfirmedCourseRegistrations' | 'courseRegistrations' | 'contactRequests' | 'rejectedApplications' | 'auditLog',
+  | 'unconfirmedCourseRegistrations'
+  | 'courseRegistrations'
+  | 'eventRegistrations'
+  | 'contactRequests'
+  | 'rejectedApplications'
+  | 'auditLog',
   number
 >
 
@@ -66,6 +78,25 @@ export async function purgeRetention(payload: Payload, now: Date = new Date()): 
     .map((c) => c.id)
   const courseRegistrations = finished.length ? await remove('course-registrations', { course: { in: finished } }) : 0
 
+  // Termine: Ende (sonst Beginn) vor der Frist
+  const eventCutoff = iso(monthsAgo(now, RETENTION.eventRegistrationMonthsAfterEvent))
+  const { docs: pastEvents } = await payload.find({
+    collection: 'events',
+    where: {
+      or: [
+        { endDate: { less_than: eventCutoff } },
+        { and: [{ endDate: { exists: false } }, { startDate: { less_than: eventCutoff } }] },
+      ],
+    },
+    pagination: false,
+    depth: 0,
+    overrideAccess: true,
+    select: {},
+  })
+  const eventRegistrations = pastEvents.length
+    ? await remove('event-registrations', { event: { in: pastEvents.map((e) => e.id) } })
+    : 0
+
   const contactRequests = await remove('contact-requests', {
     createdAt: { less_than: iso(monthsAgo(now, RETENTION.contactRequestMonths)) },
   })
@@ -78,7 +109,14 @@ export async function purgeRetention(payload: Payload, now: Date = new Date()): 
   const auditLog = await remove('audit-log', { createdAt: { less_than: iso(monthsAgo(now, RETENTION.auditLogMonths)) } })
   await purgeExpired(payload)
 
-  const result = { unconfirmedCourseRegistrations, courseRegistrations, contactRequests, rejectedApplications, auditLog }
+  const result = {
+    unconfirmedCourseRegistrations,
+    courseRegistrations,
+    eventRegistrations,
+    contactRequests,
+    rejectedApplications,
+    auditLog,
+  }
   if (Object.values(result).some((n) => n > 0)) await audit(payload, { action: 'retention.purged', details: result })
   return result
 }

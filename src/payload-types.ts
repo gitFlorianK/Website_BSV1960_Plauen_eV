@@ -750,9 +750,9 @@ export interface ContactInfoBlock {
  */
 export interface LegalNoticeBlock {
   /**
-   * Daten aus „Verwaltung → Vereinsdaten“.
+   * Daten aus „Verwaltung → Vereinsdaten“ bzw. aus der Systemkonfiguration.
    */
-  variant: 'imprint' | 'controller';
+  variant: 'imprint' | 'controller' | 'retention';
   id?: string | null;
   blockName?: string | null;
   blockType: 'legalNotice';
@@ -2274,6 +2274,12 @@ export interface SiteSetting {
         id?: string | null;
       }[]
     | null;
+  /**
+   * Für Berichte und Neuigkeiten. Anschrift ist die Vereinsanschrift.
+   */
+  editorialResponsible?: {
+    name?: string | null;
+  };
   privacyContact?: {
     name?: string | null;
     email?: string | null;
@@ -2396,6 +2402,11 @@ export interface SiteSettingsSelect<T extends boolean = true> {
         photo?: T;
         representative?: T;
         id?: T;
+      };
+  editorialResponsible?:
+    | T
+    | {
+        name?: T;
       };
   privacyContact?:
     | T

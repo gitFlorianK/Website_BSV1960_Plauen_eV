@@ -35,7 +35,7 @@ export const TrainingScheduleBlock: React.FC<Props> = async ({ heading, intro, s
   return (
     <section className="container" aria-labelledby={heading ? 'training-heading' : undefined}>
       <SectionHeading id="training-heading" title={heading} intro={intro} />
-      <div className="grid gap-8 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         {order.map((season) => {
           const slots = docs.filter((s) => s.seasonType === season)
           const locations = [
@@ -70,7 +70,7 @@ export const TrainingScheduleBlock: React.FC<Props> = async ({ heading, intro, s
               ) : (
                 <ul className="divide-y divide-border">
                   {slots.map((s: TrainingSlot) => (
-                    <li key={s.id} className="grid grid-cols-[9.5rem_1fr] gap-3 py-3">
+                    <li key={s.id} className="grid grid-cols-[9.5rem_minmax(0,1fr)] gap-3 py-3">
                       <div>
                         <p className="font-semibold">{weekdayLabel(s.weekday)}</p>
                         <p className="flex items-center gap-1 whitespace-nowrap text-sm text-muted-foreground">

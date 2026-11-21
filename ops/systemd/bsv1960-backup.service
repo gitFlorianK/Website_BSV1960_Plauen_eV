@@ -1,0 +1,13 @@
+[Unit]
+Description=Datensicherung Website BSV 1960 Plauen (restic)
+Documentation=file:///opt/bsv1960/docs/backup.md
+Wants=network-online.target
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/bsv1960/ops/backup.sh
+# Nicht mit dem Webserver um CPU/IO konkurrieren
+Nice=10
+IOSchedulingClass=idle
+# Ausgabe landet im Journal: journalctl -u bsv1960-backup

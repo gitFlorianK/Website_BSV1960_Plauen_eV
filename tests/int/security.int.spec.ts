@@ -52,7 +52,7 @@ async function backdate(table: string, id: number, date: Date, column = 'created
 
 beforeAll(async () => {
   payload = await getPayload({ config: await config })
-  for (const collection of ['audit-log', 'course-registrations', 'courses', 'contact-requests', 'membership-applications', 'event-registrations', 'users', 'rate-limits'] as const) {
+  for (const collection of ['audit-log', 'course-registrations', 'courses', 'contact-requests', 'membership-applications', 'event-registrations', 'events', 'users', 'rate-limits'] as const) {
     await payload.delete({ collection, where: { id: { exists: true } }, context: { disableRevalidate: true } })
   }
   await createUser(['mitglied'], { twoFactorEnabled: true }) // erstes Konto wird Admin
@@ -257,11 +257,36 @@ describe('Löschfristen', () => {
     const newRejected = await application('rejected', 60)
     const oldAccepted = await application('accepted', 400)
 
+    // Turnieranmeldungen: Termin vor 13 Monaten (weg), vor 2 Monaten (bleibt), mehrtägig mit Ende vor 11 Monaten (bleibt)
+    const member = await createUser()
+    const event = (start: Date, end?: Date) =>
+      payload.create({
+        collection: 'events',
+        data: { title: `Turnier ${++n}`, slug: `turnier-${n}`, startDate: start.toISOString(), endDate: end?.toISOString(), eventType: 'tournament', visibility: 'public' },
+        context: { disableRevalidate: true },
+      })
+    const eventReg = async (start: Date, end?: Date) =>
+      payload.create({
+        collection: 'event-registrations',
+        data: { event: (await event(start, end)).id, member: member.id, bowClass: 'recurve', status: 'registered' },
+        context: { disableRevalidate: true },
+      })
+    const oldEventReg = await eventReg(daysAgo(395))
+    const recentEventReg = await eventReg(daysAgo(60))
+    const longEventReg = await eventReg(daysAgo(400), daysAgo(335))
+
     const oldAudit = await payload.create({ collection: 'audit-log', data: { action: 'logout' } })
     await backdate('audit_log', oldAudit.id, daysAgo(400))
 
     const result = await purgeRetention(payload, now)
-    expect(result).toEqual({ unconfirmedCourseRegistrations: 1, courseRegistrations: 1, contactRequests: 1, rejectedApplications: 1, auditLog: 1 })
+    expect(result).toEqual({
+      unconfirmedCourseRegistrations: 1,
+      courseRegistrations: 1,
+      eventRegistrations: 1,
+      contactRequests: 1,
+      rejectedApplications: 1,
+      auditLog: 1,
+    })
 
     const exists = async (collection: 'course-registrations' | 'contact-requests' | 'membership-applications' | 'audit-log', id: number) =>
       Boolean(await payload.findByID({ collection, id, disableErrors: true, depth: 0 }))
@@ -270,6 +295,10 @@ describe('Löschfristen', () => {
     expect(await exists('contact-requests', oldContact.id)).toBe(false)
     expect(await exists('membership-applications', oldRejected.id)).toBe(false)
     expect(await exists('audit-log', oldAudit.id)).toBe(false)
+    expect(Boolean(await payload.findByID({ collection: 'event-registrations', id: oldEventReg.id, disableErrors: true }))).toBe(false)
+    for (const r of [recentEventReg, longEventReg]) {
+      expect(Boolean(await payload.findByID({ collection: 'event-registrations', id: r.id, disableErrors: true }))).toBe(true)
+    }
     for (const id of [unconfirmedNew.id, confirmedFuture.id, recentCourseReg.id]) expect(await exists('course-registrations', id)).toBe(true)
     expect(await exists('contact-requests', newContact.id)).toBe(true)
     expect(await exists('membership-applications', newRejected.id)).toBe(true)

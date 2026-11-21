@@ -3,6 +3,7 @@ import * as migration_20261120_193955_phase3_frontend from './20261120_193955_ph
 import * as migration_20261120_201032_phase4_forms from './20261120_201032_phase4_forms';
 import * as migration_20261121_041514_phase5_members from './20261121_041514_phase5_members';
 import * as migration_20261121_045329_phase6_security from './20261121_045329_phase6_security';
+import * as migration_20261121_051437_phase7_content from './20261121_051437_phase7_content';
 
 export const migrations = [
   {
@@ -28,6 +29,11 @@ export const migrations = [
   {
     up: migration_20261121_045329_phase6_security.up,
     down: migration_20261121_045329_phase6_security.down,
-    name: '20261121_045329_phase6_security'
+    name: '20261121_045329_phase6_security',
+  },
+  {
+    up: migration_20261121_051437_phase7_content.up,
+    down: migration_20261121_051437_phase7_content.down,
+    name: '20261121_051437_phase7_content'
   },
 ];
