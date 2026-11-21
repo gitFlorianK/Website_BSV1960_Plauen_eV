@@ -2,7 +2,16 @@ import { createHash, createHmac, randomBytes } from 'crypto'
 
 /**
  * Leitet zweckgebundene Schlüssel aus PAYLOAD_SECRET ab (kein zusätzliches Secret nötig).
- * Ein Wechsel von PAYLOAD_SECRET macht alle abgeleiteten Werte ungültig (offene ALTCHA-Challenges, Rate-Limit-Zähler).
+ *
+ * Ein Wechsel von PAYLOAD_SECRET macht alle abgeleiteten Werte ungültig – nicht nur Flüchtiges:
+ * - `totp-encryption`: verschlüsselte 2FA-Geheimnisse → **alle Zwei-Faktor-Einrichtungen unbrauchbar**
+ *   (müssen vom Vorstand zurückgesetzt und neu eingerichtet werden)
+ * - `recovery-codes`: Hashes der Wiederherstellungscodes → alle Codes ungültig
+ * - `altcha-*`: offene ALTCHA-Challenges; `keyedHash` (`ip`, `email`, `audit-*`): Rate-Limit-Zähler,
+ *   Hashes im Sicherheitsprotokoll sind nicht mehr mit neuen Einträgen vergleichbar
+ * Dazu kommt Payload selbst: alle Sitzungen (JWT) enden. Einladungs-/Reset-Links und Bestätigungslinks
+ * der Kursanmeldung bleiben gültig (Zufallstoken in der Datenbank, nicht vom Secret abgeleitet).
+ * Vorgehen bei einem nötigen Wechsel: docs/betrieb.md, Abschnitt 8.
  */
 export function derivedSecret(purpose: string): string {
   const base = process.env.PAYLOAD_SECRET

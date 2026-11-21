@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test'
 
+import { login } from '../helpers/login'
+import { deleteUser, seed, seedUser } from '../helpers/seedUser'
+
 /**
  * Phase 6: Sicherheits-Header, Nonce-CSP und Datei-Auslieferung (läuft gegen den Dev-Server).
  */
@@ -52,5 +55,59 @@ test.describe('Sicherheits-Header', () => {
     expect(file.status()).toBe(200)
     expect(file.headers()['cache-control']).toMatch(/^private/)
     expect(file.headers()['content-security-policy']).toContain("script-src 'none'")
+  })
+})
+
+/**
+ * Entwurfsmodus (Live-Vorschau): öffnet Entwürfe nur zusammen mit einer Staff-Sitzung.
+ * Das Draft-Mode-Cookie allein (z. B. nach dem Abmelden am Vereins-PC) darf nichts freigeben.
+ */
+test.describe('Vorschau', () => {
+  const redakteur = { email: 'e2e-vorschau@test.local', password: 'Pfeilspitze-Nocke-2026', name: 'Rita Redaktion' }
+  const draftPost = { slug: 'e2e-vorschau-entwurf', text: 'Entwurfstext nur für die Redaktion' }
+  const internalPost = { slug: 'e2e-vorschau-intern', text: 'Interner Text nur für Mitglieder' }
+
+  test.beforeAll(() => {
+    seedUser({ ...redakteur, roles: ['redakteur'] })
+    seed({ action: 'post', title: 'E2E Vorschau Entwurf', slug: draftPost.slug, text: draftPost.text, visibility: 'public', status: 'draft' })
+    seed({ action: 'post', title: 'E2E Vorschau Intern', slug: internalPost.slug, text: internalPost.text, visibility: 'members', status: 'published' })
+  })
+
+  test.afterAll(() => {
+    seed({ action: 'deletePost', slug: draftPost.slug })
+    seed({ action: 'deletePost', slug: internalPost.slug })
+    deleteUser(redakteur.email)
+  })
+
+  test('nur mit Staff-Sitzung; ein liegengebliebenes Vorschau-Cookie öffnet nichts', async ({ browser }) => {
+    const context = await browser.newContext({
+      baseURL: 'http://127.0.0.1:3000',
+      extraHTTPHeaders: { 'x-real-ip': `198.51.100.${Math.floor(Math.random() * 250) + 1}` },
+    })
+    const page = await context.newPage()
+    await login({ page, user: redakteur })
+
+    const previewUrl = (path: string) => `/next/preview?path=${encodeURIComponent(path)}&previewSecret=${process.env.PREVIEW_SECRET}`
+    await page.goto(previewUrl(`/aktuelles/${draftPost.slug}`))
+    await expect(page.getByText(draftPost.text)).toBeVisible()
+    await page.goto(`/aktuelles/${internalPost.slug}`)
+    await expect(page.getByText(internalPost.text)).toBeVisible()
+    const bypass = (await context.cookies()).find((c) => c.name === '__prerender_bypass')
+    expect(bypass).toBeTruthy()
+
+    // Abmelden entfernt das Vorschau-Cookie …
+    await page.goto('/mitglieder')
+    await page.getByRole('button', { name: 'Abmelden' }).click()
+    await page.waitForURL(/\/login\?abgemeldet=1/)
+    expect((await context.cookies()).find((c) => c.name === '__prerender_bypass')).toBeUndefined()
+
+    // … und selbst ein zurückgelegtes Cookie ohne Sitzung gibt weder Entwurf noch internen Beitrag frei
+    await context.addCookies([bypass!])
+    for (const slug of [draftPost.slug, internalPost.slug]) {
+      const res = await page.goto(`/aktuelles/${slug}`)
+      expect(res?.status()).toBe(404)
+    }
+    await expect(page.getByText(internalPost.text)).toHaveCount(0)
+    await context.close()
   })
 })

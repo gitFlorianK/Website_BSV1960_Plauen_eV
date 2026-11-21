@@ -5,7 +5,8 @@ import { getPayload } from 'payload'
 import { getServerSideURL } from '@/utilities/getURL'
 import { routes } from '@/utilities/routes'
 
-export const revalidate = 3600
+// Zur Laufzeit gerendert, damit der Build keine Datenbank braucht (Cache-Control: next.config.ts).
+export const dynamic = 'force-dynamic'
 
 /** Sitemap aller öffentlich sichtbaren Inhalte (anonyme Abfragen mit Access-Regeln). */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

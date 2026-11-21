@@ -32,6 +32,8 @@ export const TrainingScheduleBlock: React.FC<Props> = async ({ heading, intro, s
   const order: Array<'indoor' | 'outdoor'> =
     show === 'current' ? [current] : current === 'outdoor' ? ['outdoor', 'indoor'] : ['indoor', 'outdoor']
 
+  // Saison-Titel eine Ebene unter der Block-Überschrift; ohne sie direkt unter der Seiten-h1
+  const SeasonHeading = heading ? 'h3' : 'h2'
   return (
     <section className="container" aria-labelledby={heading ? 'training-heading' : undefined}>
       <SectionHeading id="training-heading" title={heading} intro={intro} />
@@ -56,7 +58,7 @@ export const TrainingScheduleBlock: React.FC<Props> = async ({ heading, intro, s
               )}
             >
               <header className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-                <h3 className="text-xl font-bold">{SEASONS[season].title}</h3>
+                <SeasonHeading className="text-xl font-bold">{SEASONS[season].title}</SeasonHeading>
                 {isCurrent && (
                   <span className="rounded-full bg-brand px-3 py-1 text-xs font-semibold text-primary-foreground">
                     Aktuell

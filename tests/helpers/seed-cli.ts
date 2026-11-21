@@ -16,6 +16,8 @@ type Task =
   | { action: 'deleteEvent'; slug: string }
   | { action: 'cleanup'; eventSlugPrefix: string; emailPrefix: string }
   | { action: 'deleteEmptyDrafts' }
+  | { action: 'post'; title: string; slug: string; text: string; visibility: 'public' | 'members'; status: 'draft' | 'published' }
+  | { action: 'deletePost'; slug: string }
 
 const task = JSON.parse(process.env.E2E_SEED ?? '{}') as Task
 const payload = await getPayload({ config })
@@ -40,6 +42,28 @@ switch (task.action) {
     result = { id: user.id }
     break
   }
+  case 'post': {
+    await payload.delete({ collection: 'posts', where: { slug: { equals: task.slug } }, context })
+    const paragraph = { type: 'paragraph', version: 1, direction: null, format: '', indent: 0, textFormat: 0, textStyle: '' }
+    const text = { type: 'text', version: 1, text: task.text, format: 0, mode: 'normal', style: '', detail: 0 }
+    const post = await payload.create({
+      collection: 'posts',
+      draft: task.status === 'draft',
+      data: {
+        title: task.title,
+        slug: task.slug,
+        visibility: task.visibility,
+        _status: task.status,
+        content: { root: { type: 'root', version: 1, direction: null, format: '', indent: 0, children: [{ ...paragraph, children: [text] }] } },
+      } as never,
+      context,
+    })
+    result = { id: post.id }
+    break
+  }
+  case 'deletePost':
+    await payload.delete({ collection: 'posts', where: { slug: { equals: task.slug } }, context })
+    break
   case 'deleteUser':
     await payload.delete({ collection: 'users', where: { email: { equals: task.email } } })
     break

@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { draftMode } from 'next/headers'
 import React, { cache } from 'react'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
@@ -14,12 +13,13 @@ import RichText from '@/components/RichText'
 import type { Post } from '@/payload-types'
 import { formatDate } from '@/utilities/dates'
 import { generateMeta } from '@/utilities/generateMeta'
+import { getPreviewUser } from '@/utilities/previewUser'
 import { routes } from '@/utilities/routes'
 
 type Args = { params: Promise<{ slug?: string }> }
 
 export default async function PostPage({ params }: Args) {
-  const { isEnabled: draft } = await draftMode()
+  const draft = Boolean(await getPreviewUser())
   const { slug = '' } = await params
   const decodedSlug = decodeURIComponent(slug)
   const url = routes.post(decodedSlug)
@@ -98,13 +98,15 @@ export async function generateMetadata({ params }: Args): Promise<Metadata> {
 }
 
 const queryPostBySlug = cache(async ({ slug }: { slug: string }) => {
-  const { isEnabled: draft } = await draftMode()
+  const previewUser = await getPreviewUser()
   const payload = await getPayload({ config: configPromise })
   const result = await payload.find({
     collection: 'posts',
-    draft,
+    draft: Boolean(previewUser),
     limit: 1,
-    overrideAccess: draft,
+    // Access immer prüfen – im Entwurfsmodus mit der Staff-Sitzung (src/utilities/previewUser.ts)
+    overrideAccess: false,
+    user: previewUser,
     pagination: false,
     where: { slug: { equals: slug } },
   })

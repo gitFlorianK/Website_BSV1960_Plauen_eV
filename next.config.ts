@@ -24,7 +24,8 @@ const nextConfig: NextConfig = {
         pathname: '/api/media/file/**',
       },
     ],
-    qualities: [100],
+    // Einzige erlaubte Qualitätsstufe (src/components/Media/ImageMedia) – verhindert beliebige Varianten per URL
+    qualities: [75],
     remotePatterns: [
       ...[NEXT_PUBLIC_SERVER_URL /* 'https://example.com' */].map((item) => {
         const url = new URL(item)
@@ -53,6 +54,11 @@ const nextConfig: NextConfig = {
       {
         source: '/:path*',
         headers: [...SECURITY_HEADERS, ...(process.env.NODE_ENV === 'production' ? [HSTS] : [])],
+      },
+      {
+        // Sitemap wird zur Laufzeit erzeugt – Crawler dürfen eine Stunde cachen
+        source: '/sitemap.xml',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=3600' }],
       },
       {
         // REST-API (JSON): keine Inhalte nachladen, nicht einbetten (Seiten-CSP setzt src/proxy.ts)

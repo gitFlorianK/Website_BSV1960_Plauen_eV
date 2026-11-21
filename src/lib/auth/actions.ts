@@ -1,7 +1,7 @@
 'use server'
 
 import configPromise from '@payload-config'
-import { cookies } from 'next/headers'
+import { cookies, draftMode } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { getPayload } from 'payload'
 
@@ -95,6 +95,8 @@ export async function logoutAction(): Promise<void> {
     await audit(payload, { action: 'logout', actor: user, target: { collection: 'users', id: user.id }, ip: await clientIp() })
   }
   await clearSessionCookie()
+  // Vorschau-Cookie mit entfernen (öffnet ohne Sitzung zwar nichts mehr, soll aber nicht liegen bleiben)
+  ;(await draftMode()).disable()
   redirect(`${routes.login}?abgemeldet=1`)
 }
 

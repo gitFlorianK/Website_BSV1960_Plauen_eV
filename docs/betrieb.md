@@ -221,7 +221,8 @@ App-Log nach Mail-Fehlern durchsuchen und die SMTP-Zugangsdaten prüfen. Landen 
 Nur in diesem Fall wechseln. Die Folgen sind erheblich:
 - Alle Sitzungen enden.
 - Alle 2FA-Einrichtungen und Wiederherstellungscodes werden ungültig.
-- Offene Einladungs- und Bestätigungslinks verfallen.
+- IP- und E-Mail-Hashes im Sicherheitsprotokoll lassen sich nicht mehr mit neuen Einträgen vergleichen.
+- Offene Einladungs- und Bestätigungslinks bleiben gültig (Zufallstoken, nicht vom Secret abgeleitet).
 
 Vorgehen:
 1. Sichern.

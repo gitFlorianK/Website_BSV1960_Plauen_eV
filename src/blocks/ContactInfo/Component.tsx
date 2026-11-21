@@ -24,13 +24,15 @@ export const ContactInfoBlock: React.FC<Props> = async ({ heading, intro, showLo
       ).docs
     : []
   const a = site?.address
+  // Kartentitel eine Ebene unter der Block-Überschrift; ohne sie direkt unter der Seiten-h1
+  const CardHeading = heading ? 'h3' : 'h2'
 
   return (
     <section className="container">
       <SectionHeading title={heading} intro={intro} />
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <div className="rounded-xl border-2 border-brand bg-white p-6">
-          <h3 className="mb-4 text-lg font-bold">Postanschrift</h3>
+          <CardHeading className="mb-4 text-lg font-bold">Postanschrift</CardHeading>
           <address className="not-italic leading-relaxed">
             {site?.clubName}
             <br />
@@ -69,9 +71,9 @@ export const ContactInfoBlock: React.FC<Props> = async ({ heading, intro, showLo
         </div>
         {locations.map((l) => (
           <div key={l.id} className="rounded-xl border border-border bg-white p-6">
-            <h3 className="mb-4 flex items-center gap-2 text-lg font-bold">
+            <CardHeading className="mb-4 flex items-center gap-2 text-lg font-bold">
               <MapPinIcon aria-hidden className="size-5 text-brand-text" /> {l.name}
-            </h3>
+            </CardHeading>
             <p>
               {l.street}
               <br />

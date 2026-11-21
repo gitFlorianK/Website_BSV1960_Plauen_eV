@@ -5,7 +5,9 @@ import { eventWhere, findEvents } from '@/lib/events'
 import { getServerSideURL } from '@/utilities/getURL'
 import { routes } from '@/utilities/routes'
 
-export const revalidate = 3600
+// Zur Laufzeit gerendert: Der Build braucht so keine Datenbank (Docker/CI), Inhalte sind immer aktuell.
+// Abrufende Kalender-Apps cachen über Cache-Control (unten).
+export const dynamic = 'force-dynamic'
 
 /** Kalender-Abo: nur öffentliche Termine (anonyme Abfrage mit Access-Regeln). */
 export async function GET() {

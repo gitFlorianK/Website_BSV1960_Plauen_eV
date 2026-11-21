@@ -3,19 +3,19 @@ import type { Metadata } from 'next'
 import { PayloadRedirects } from '@/components/PayloadRedirects'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
-import { draftMode } from 'next/headers'
 import React, { cache } from 'react'
 
 import { RenderBlocks } from '@/blocks/RenderBlocks'
 import { RenderHero } from '@/heros/RenderHero'
 import { LowImpactHero } from '@/heros/LowImpact'
 import { generateMeta } from '@/utilities/generateMeta'
+import { getPreviewUser } from '@/utilities/previewUser'
 import { LivePreviewListener } from '@/components/LivePreviewListener'
 
 type Args = { params: Promise<{ slug?: string }> }
 
 export default async function Page({ params: paramsPromise }: Args) {
-  const { isEnabled: draft } = await draftMode()
+  const draft = Boolean(await getPreviewUser())
   const { slug = 'home' } = await paramsPromise
   const decodedSlug = decodeURIComponent(slug)
   const url = '/' + decodedSlug
@@ -51,15 +51,16 @@ export async function generateMetadata({ params: paramsPromise }: Args): Promise
 }
 
 const queryPageBySlug = cache(async ({ slug }: { slug: string }) => {
-  const { isEnabled: draft } = await draftMode()
+  const previewUser = await getPreviewUser()
   const payload = await getPayload({ config: configPromise })
   const result = await payload.find({
     collection: 'pages',
-    draft,
+    draft: Boolean(previewUser),
     limit: 1,
     pagination: false,
-    // Entwurfsmodus ist nur für Staff aktivierbar (siehe next/preview)
-    overrideAccess: draft,
+    // Access immer prüfen – im Entwurfsmodus mit der Staff-Sitzung (src/utilities/previewUser.ts)
+    overrideAccess: false,
+    user: previewUser,
     where: { slug: { equals: slug } },
   })
   return result.docs?.[0] || null
