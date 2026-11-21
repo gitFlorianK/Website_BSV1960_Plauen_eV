@@ -57,3 +57,30 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test:int
       - run: pnpm build
+
+  # Produktions-Image bauen (ohne Datenbank, wie auf dem Server) und auf bekannte Lücken prüfen
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Image bauen
+        run: docker build --target runner --build-arg NEXT_PUBLIC_SERVER_URL=https://www.bogensport-plauen.de -t bsv1960-app:ci .
+
+      - name: Trivy (HIGH/CRITICAL mit verfügbarem Fix)
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.76.2 \
+            image --quiet --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 bsv1960-app:ci
+
+      - name: Startet der Container?
+        run: |
+          docker run -d --name app -e PAYLOAD_SECRET=ci-only-secret-not-used-anywhere-else-0123456789 \
+            -e DATABASE_URL=postgres://x:y@127.0.0.1:1/none bsv1960-app:ci
+          for i in $(seq 1 30); do
+            docker exec app wget -q --spider http://127.0.0.1:3000/robots.txt && exit 0
+            sleep 2
+          done
+          docker logs app; exit 1

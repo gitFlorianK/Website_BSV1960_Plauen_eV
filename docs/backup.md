@@ -2,7 +2,7 @@
 
 Diese Anleitung beschreibt, wie die Website gesichert wird, wie man Daten zurückholt und wie man das regelmäßig testet. Sie richtet sich an die Personen, die den Server betreuen. Allgemeiner Betrieb: [betrieb.md](betrieb.md).
 
-> **Stand:** Die Skripte `ops/backup.sh` und `ops/restore.sh` sind lokal getestet: Sicherung, Wiederherstellung und Fehlerfall, mit restic gegen die Entwicklungsdatenbank. Die Pfade (`/opt/bsv1960`, Compose-Dienst `db`) beziehen sich auf das Server-Setup aus Phase 8 und lassen sich in `/etc/bsv1960/backup.env` anpassen.
+> **Stand:** Die Skripte `ops/backup.sh` und `ops/restore.sh` sind lokal getestet: Sicherung, Wiederherstellung und Fehlerfall, mit restic gegen die Entwicklungsdatenbank. Zusätzlich gegen den vollständigen Produktions-Stack (`docker-compose.prod.yml`): Sicherung, Wiederherstellungstest (369 Dateien, alle Tabellen identisch) und der Rückweg nach Szenario B. Die Pfade (`/opt/bsv1960`, Compose-Dienst `db`) lassen sich in `/etc/bsv1960/backup.env` anpassen.
 
 ## Auf einen Blick
 
@@ -33,9 +33,9 @@ Diese Angaben gehören **offline** an zwei Stellen, zum Beispiel in den Passwort
 
 ## Einrichtung (einmalig, als root auf dem Server)
 
-1. **restic installieren:**
+1. **restic** installiert `ops/setup-server.sh` mit, aus dem Paket der Distribution. Ab Version 0.16 genügt es; die Debian- und Ubuntu-Pakete können sich nicht selbst aktualisieren (`restic self-update` fehlt dort). Prüfen mit:
    ```bash
-   apt install restic && restic self-update
+   restic version
    ```
 2. **Storage Box vorbereiten** (Hetzner Robot → Storage Box):
    - SSH-Unterstützung aktivieren.
@@ -103,6 +103,8 @@ Diese Angaben gehören **offline** an zwei Stellen, zum Beispiel in den Passwort
 
 Immer zuerst **auspacken**, ohne am Live-System etwas zu ändern. Dann prüfen und erst danach zurückspielen.
 
+`ops/restore.sh` liest `/etc/bsv1960/backup.env` und läuft daher als root: Die Befehle unten in einer root-Shell (`sudo -i`, dann `cd /opt/bsv1960`) ausführen oder jeweils mit `sudo` aufrufen.
+
 ```bash
 cd /opt/bsv1960
 ops/restore.sh list                          # Snapshot auswählen
@@ -132,21 +134,23 @@ Einzelne Datensätze lassen sich nicht direkt zurückspielen, weil sie mit ander
 
 ### B) Update oder Migration ist schiefgegangen
 
-Vor jedem Update wird von Hand gesichert (siehe betrieb.md), der Dump davor liegt also in `/var/backups/bsv1960/bsv1960.dump`.
+`ops/deploy.sh` sichert vor jedem Update. Der Dump davor liegt also in `/var/backups/bsv1960/bsv1960.dump`, die vorherige Version nennt das Skript am Ende.
 
 ```bash
 cd /opt/bsv1960
-docker compose -f docker-compose.prod.yml stop app          # App anhalten
-git checkout <vorherige Version>                             # alten Code zurück und Image neu bauen (betrieb.md)
-ops/restore.sh db /var/backups/bsv1960/bsv1960.dump bsv1960 --live
-docker compose -f docker-compose.prod.yml up -d app
+docker compose -f docker-compose.prod.yml stop app                       # App anhalten
+sudo ops/restore.sh db /var/backups/bsv1960/bsv1960.dump bsv1960 --live  # Datenbank von vor dem Update
+git checkout <vorherige Version>                                          # alter Code
+SKIP_BACKUP=1 SKIP_PULL=1 ops/deploy.sh                                   # bauen und starten
 ```
+
+Später zurück auf den aktuellen Stand: `git checkout main`, dann normal `ops/deploy.sh`.
 
 Daten, die zwischen Sicherung und Rücksprung entstanden sind, etwa neue Anmeldungen, gehen dabei verloren. Deshalb unmittelbar vor dem Update sichern.
 
 ### C) Server komplett verloren
 
-1. Neuen Server nach [betrieb.md](betrieb.md) einrichten, bis einschließlich Docker und Repository unter `/opt/bsv1960`. Die Website noch **nicht** starten.
+1. Neuen Server nach [betrieb.md](betrieb.md), Abschnitt 4, einrichten: `setup-server.sh` und Repository unter `/opt/bsv1960` (Schritte 1–3). Die Website noch **nicht** starten.
 2. restic installieren, Storage-Box-Zugang und `/etc/bsv1960/` wie oben anlegen. Das restic-Passwort kommt aus dem Notfallumschlag, **kein** `restic init`.
 3. Neuesten Snapshot auspacken:
    ```bash
@@ -155,14 +159,18 @@ Daten, die zwischen Sicherung und Rücksprung entstanden sind, etwa neue Anmeldu
 4. Konfiguration und Dateien zurücklegen:
    ```bash
    cp /root/restore/opt/bsv1960/.env /opt/bsv1960/.env && chmod 600 /opt/bsv1960/.env
-   rsync -a /root/restore/opt/bsv1960/uploads/ /opt/bsv1960/uploads/
+   sudo rsync -a /root/restore/opt/bsv1960/uploads/ /opt/bsv1960/uploads/   # behält uid 1000
    ```
 5. Nur die Datenbank starten und den Dump laden:
    ```bash
    docker compose -f docker-compose.prod.yml up -d db
    ops/restore.sh db /root/restore/var/backups/bsv1960/bsv1960.dump bsv1960 --live
    ```
-6. Website starten (betrieb.md, „Update einspielen“: Migrationen laufen dabei mit) und prüfen: Startseite, Login, ein Bild im Mitgliederbereich.
+6. Website starten; Migrationen laufen dabei mit:
+   ```bash
+   SKIP_BACKUP=1 SKIP_PULL=1 ops/deploy.sh
+   ```
+   Dann prüfen: Startseite, Login, ein Bild im Mitgliederbereich.
 7. Neue Sicherung von Hand anstoßen und den Timer aktivieren.
 8. Ändert sich die IP des Servers, die DNS-Einträge anpassen.
 

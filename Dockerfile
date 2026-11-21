@@ -1,71 +1,70 @@
-# To use this Dockerfile, you have to set `output: 'standalone'` in your next.config.js file.
-# From https://github.com/vercel/next.js/blob/canary/examples/with-docker/Dockerfile
+# syntax=docker/dockerfile:1
+#
+# Container-Image der Website (Next.js + Payload CMS). Zwei Ziele:
+#   runner (Standard) – schlanker Produktivserver aus `.next/standalone`, läuft als `node` (uid 1000)
+#   tools             – voller Quellcode + Abhängigkeiten für Migrationen, Import, Admin-Konto
+#                       (`docker compose -f docker-compose.prod.yml run --rm tools payload migrate`)
+#
+# Der Build braucht keine Datenbank und keine Geheimnisse. NEXT_PUBLIC_SERVER_URL wird jedoch
+# beim Bauen eingesetzt (Links, CSRF-Origin) – Staging und Produktion brauchen eigene Builds.
 
-FROM node:22.23.5-alpine AS base
+ARG NODE_IMAGE=node:24-alpine
 
-# Install dependencies only when needed
+FROM ${NODE_IMAGE} AS base
+# pnpm in der Version aus package.json ("packageManager"), für alle Nutzer lesbar
+ENV COREPACK_HOME=/opt/corepack \
+    COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
+    PNPM_HOME=/pnpm \
+    NEXT_TELEMETRY_DISABLED=1
+WORKDIR /app
+COPY package.json ./
+RUN corepack enable && corepack install && chmod -R a+rX "$COREPACK_HOME"
+
+# --- Abhängigkeiten (eigene Schicht: ändert sich nur mit dem Lockfile) ---
 FROM base AS deps
-# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
-RUN apk add --no-cache libc6-compat
-WORKDIR /app
+COPY pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm config set store-dir /pnpm/store && \
+    pnpm install --frozen-lockfile
 
-# Install dependencies based on the preferred package manager
-COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
-RUN \
-  if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
-  elif [ -f package-lock.json ]; then npm ci; \
-  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm i --frozen-lockfile; \
-  else echo "Lockfile not found." && exit 1; \
-  fi
-
-
-# Rebuild the source code only when needed
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+# --- Build ---
+FROM deps AS builder
+ARG NEXT_PUBLIC_SERVER_URL
 COPY . .
+# Platzhalter nur für den Build: Payload lädt seine Config, verbindet sich aber nicht (alle Seiten
+# sind dynamisch). Zur Laufzeit kommen die echten Werte aus .env.
+RUN test -n "$NEXT_PUBLIC_SERVER_URL" || { echo "Build-Argument NEXT_PUBLIC_SERVER_URL fehlt" >&2; exit 1; }
+RUN NEXT_PUBLIC_SERVER_URL="$NEXT_PUBLIC_SERVER_URL" \
+    DATABASE_URL=postgres://build:build@127.0.0.1:1/build \
+    PAYLOAD_SECRET=build-only-placeholder-not-a-secret-0000000000 \
+    pnpm build
 
-# Next.js collects completely anonymous telemetry data about general usage.
-# Learn more here: https://nextjs.org/telemetry
-# Uncomment the following line in case you want to disable telemetry during the build.
-# ENV NEXT_TELEMETRY_DISABLED 1
+# --- Werkzeuge: Migrationen, Import, Admin-Konto ---
+FROM deps AS tools
+ENV NODE_ENV=production
+COPY . .
+RUN mkdir -p uploads legacy-import && chown node:node uploads legacy-import
+USER node
+ENTRYPOINT ["pnpm"]
+CMD ["payload", "migrate"]
 
-RUN \
-  if [ -f yarn.lock ]; then yarn run build; \
-  elif [ -f package-lock.json ]; then npm run build; \
-  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm run build; \
-  else echo "Lockfile not found." && exit 1; \
-  fi
-
-# Production image, copy all the files and run next
-FROM base AS runner
+# --- Produktivserver ---
+FROM ${NODE_IMAGE} AS runner
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    PORT=3000 \
+    HOSTNAME=0.0.0.0
 WORKDIR /app
-
-ENV NODE_ENV production
-# Uncomment the following line in case you want to disable telemetry during runtime.
-# ENV NEXT_TELEMETRY_DISABLED 1
-
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-# Remove this line if you do not have this folder
-COPY --from=builder /app/public ./public
-
-# Set the correct permission for prerender cache
-RUN mkdir .next
-RUN chown nextjs:nodejs .next
-
-# Automatically leverage output traces to reduce image size
-# https://nextjs.org/docs/advanced-features/output-file-tracing
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-USER nextjs
-
+# npm/corepack braucht der Server nicht – weniger Angriffsfläche (und deren Abhängigkeiten im Scan)
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+      /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
+COPY --from=builder --chown=node:node /app/public ./public
+COPY --from=builder --chown=node:node /app/.next/standalone ./
+COPY --from=builder --chown=node:node /app/.next/static ./.next/static
+# uploads/ wird als Volume eingehängt; .next/cache braucht der Bild-Optimierer
+RUN mkdir -p uploads .next/cache && chown node:node uploads .next/cache
+USER node
 EXPOSE 3000
-
-ENV PORT 3000
-
-# server.js is created by next build from the standalone output
-# https://nextjs.org/docs/pages/api-reference/next-config-js/output
-CMD HOSTNAME="0.0.0.0" node server.js
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD wget -q --spider http://127.0.0.1:3000/robots.txt || exit 1
+CMD ["node", "server.js"]

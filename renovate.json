@@ -1,0 +1,35 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":semanticCommitsDisabled"],
+  "timezone": "Europe/Berlin",
+  "schedule": ["before 6am on monday"],
+  "labels": ["abhängigkeiten"],
+  "minimumReleaseAge": "3 days",
+  "prConcurrentLimit": 5,
+  "lockFileMaintenance": { "enabled": true, "schedule": ["before 6am on the first day of the month"] },
+  "packageRules": [
+    {
+      "description": "Payload-Pakete nur gemeinsam (gleiche Version Pflicht); Schemaänderungen → Migration nötig",
+      "matchPackageNames": ["payload", "@payloadcms/**"],
+      "groupName": "Payload"
+    },
+    {
+      "description": "Next.js und React gemeinsam",
+      "matchPackageNames": ["next", "react", "react-dom", "@types/react", "@types/react-dom", "eslint-config-next"],
+      "groupName": "Next.js/React"
+    },
+    {
+      "description": "Basis-Images: Node bleibt auf 24 (LTS), PostgreSQL auf 17 – Hauptversionswechsel nur bewusst (docs/betrieb.md)",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["node", "postgres"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "Kleine Updates von Entwicklungswerkzeugen bündeln",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "Entwicklungswerkzeuge"
+    }
+  ]
+}

@@ -40,6 +40,17 @@ Drizzle fragt bei Push und `migrate:create` interaktiv „created or renamed?“
 
 Mailpit-Web-UI (alle lokal versendeten Mails): http://localhost:8025
 
+**Produktion** (Details `docs/betrieb.md`):
+- `Dockerfile` hat zwei Ziele:
+  - `runner`: standalone, uid 1000, ohne npm
+  - `tools`: voller Quellcode, `NODE_ENV=production`, für `payload migrate`, `import:legacy`, `user:create-admin`
+- `docker-compose.prod.yml` definiert `db`, `app`, `caddy` und `tools` (Profil). Konfiguration in `ops/caddy/`.
+- Deploy: `ops/deploy.sh`. Image lokal bauen: `docker build --build-arg NEXT_PUBLIC_SERVER_URL=https://localhost:8443 .`
+- Daraus folgen Regeln:
+  - Der Build darf keine Datenbank brauchen.
+  - Die App schreibt nur nach `uploads/`, `.next/cache` und `/tmp` (schreibgeschütztes Dateisystem).
+  - Neue Umgebungsvariablen kommen über `env_file: .env` automatisch an. Build-Variablen (`NEXT_PUBLIC_*`) gehören zusätzlich als `args` in Dockerfile und Compose.
+
 ## Architektur
 
 - `src/payload.config.ts` – zentrale Payload-Konfiguration (Collections, Globals, Plugins, DB-Adapter, Jobs).
@@ -58,7 +69,7 @@ Mailpit-Web-UI (alle lokal versendeten Mails): http://localhost:8025
 - **Uploads** (`media`, `documents`) liegen unter `uploads/` außerhalb von `public/` und werden nur über `/api/<collection>/file/…` mit Access-Prüfung ausgeliefert. Payload prüft Dateityp per Magic Bytes und PDF-Struktur; kein SVG. Härtung in `src/lib/uploads/hardening.ts`: `resizeOptions` lässt sharp auch das Original neu kodieren (entfernt EXIF/GPS – ohne `resizeOptions`/`formatOptions` bliebe es unverändert), `Cache-Control: private`, `pasteURL: false`.
 - **Anmeldung & Mitgliederbereich** (`src/lib/auth/`): Login, Passwort-Reset und Einladung laufen ausschließlich über Server Actions mit der Local API (`service.ts`, `actions.ts`); die REST-Endpunkte dafür sperrt `beforeOperation` in `src/collections/Users`, `/admin/login` & Co. leiten per `redirects.ts` auf `/login` um. 2FA (TOTP, `totp.ts`/`twoFactor.ts`) prüft der `beforeLogin`-Hook; `admin`/`vorstand` wirken erst mit aktiver 2FA (`effectiveRoles`). Das JWT holt der `afterLogin`-Hook über `context` (wegen `removeTokenFromResponses`). Geheimnisse liegen in versteckten Feldern und werden nur über `payload.db` geschrieben. Payload verwirft beim Passwortwechsel selbst alle Sessions. `/mitglieder/*` ist dynamisch; **jede Seite ruft `requireMember(<eigener Pfad>)`** – das Layout schützt nicht.
 - **Sicherheitsprotokoll** (`audit-log`, `src/lib/audit.ts`): `audit(payload, entry, req?)` wirft nie. Mit `req` landet der Eintrag in derselben Transaktion (rollt mit zurück) – Fehlversuche daher nach dem gescheiterten Login ohne `req` schreiben. `audit` kopiert `req` ohne DataLoader und mit `depth: 0`; sonst ersetzt Payload `req.context` der laufenden Operation (der Login verlöre sein Token). Löschungen durch Personen protokolliert `withDeleteAudit` (in `payload.config.ts` auf alle Collections angewendet).
-- **Löschfristen**: Job `purge-retention` (`src/lib/retention.ts`, Fristen in `RETENTION`), stündlich über `jobs.autoRun` nur im Produktivserver. Die Datenschutzerklärung zeigt die Fristen über den Block `legalNotice` (Variante `retention`) direkt aus `RETENTION` – neue Fristen dort und in der Tabelle des Blocks ergänzen, nicht als Freitext.
+- **Löschfristen**: Job `purge-retention` (`src/lib/retention.ts`, Fristen in `RETENTION`), stündlich über `jobs.autoRun` nur im Produktivserver. Die Crons startet `src/instrumentation.ts` beim Serverstart; Payload täte das sonst erst bei der ersten Admin- oder REST-Anfrage. Die Datenschutzerklärung zeigt die Fristen über den Block `legalNotice` (Variante `retention`) direkt aus `RETENTION` – neue Fristen dort und in der Tabelle des Blocks ergänzen, nicht als Freitext.
 - **Inhalte**: Quelle der Erstinhalte (Seiten, Rechtstexte, Vereinsdaten) ist `scripts/legacy/pages.ts` bzw. `scripts/import-legacy.ts`; ein erneuter Import überschreibt Änderungen aus dem Admin an diesen Seiten. Offene Punkte des Vereins: `docs/pruefliste-verein.md`.
 - `payload.db.updateOne` mit Array-Feldern (z. B. `sessions`) **plus** normalen Spalten scheitert (Drizzle macht daraus ein INSERT … ON CONFLICT gegen NOT-NULL-Spalten) – getrennt schreiben.
 - Pflicht-Relationen haben in der DB `ON DELETE SET NULL`: abhängige Datensätze über `src/hooks/dependents.ts` mitlöschen oder das Löschen verhindern.

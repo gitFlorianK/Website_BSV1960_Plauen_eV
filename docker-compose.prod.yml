@@ -1,0 +1,126 @@
+# Produktiv- bzw. Staging-Betrieb auf dem Server (/opt/bsv1960). Konfiguration in .env (.env.example).
+#
+#   docker compose -f docker-compose.prod.yml build                 # Images bauen (app + tools)
+#   docker compose -f docker-compose.prod.yml run --rm tools payload migrate
+#   docker compose -f docker-compose.prod.yml up -d                 # db, app, caddy starten
+#
+# Einzelheiten: docs/betrieb.md. Datenbank und App sind von außen nicht erreichbar – nur Caddy
+# veröffentlicht Ports. Die App läuft genau einmal (Lösch-Jobs laufen im Server-Prozess).
+name: bsv1960
+
+# Bind-Mounts mit :z – nur auf SELinux-Systemen (Fedora/RHEL) wirksam, sonst ignoriert.
+
+x-hardening: &hardening
+  restart: unless-stopped
+  security_opt:
+    - no-new-privileges:true
+
+services:
+  db:
+    <<: *hardening
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: bsv
+      POSTGRES_DB: bsv1960
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD fehlt in .env}
+      TZ: Europe/Berlin
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [backend]
+    shm_size: 256mb
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U bsv -d bsv1960']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    <<: *hardening
+    build:
+      context: .
+      target: runner
+      args:
+        NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL:?NEXT_PUBLIC_SERVER_URL fehlt in .env}
+    image: bsv1960-app:latest
+    env_file: .env
+    environment: &app-env
+      # Passwort nur hex (openssl rand -hex 24), dann braucht die URL keine Kodierung
+      DATABASE_URL: postgres://bsv:${POSTGRES_PASSWORD}@db:5432/bsv1960
+      TZ: Europe/Berlin
+    volumes:
+      - ./uploads:/app/uploads:z
+      - next-cache:/app/.next/cache
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    # backend: Datenbank; web: Caddy und ausgehende Verbindungen (SMTP)
+    networks: [backend, web]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  caddy:
+    <<: *hardening
+    image: caddy:2-alpine
+    ports:
+      - '${HTTP_PORT:-80}:80'
+      - '${HTTPS_PORT:-443}:443'
+      - '${HTTPS_PORT:-443}:443/udp'
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN:?SITE_DOMAIN fehlt in .env}
+      REDIRECT_DOMAINS: ${REDIRECT_DOMAINS:-}
+      STAGING_USER: ${STAGING_USER:-}
+      STAGING_PASSWORD_HASH: ${STAGING_PASSWORD_HASH:-}
+      TZ: Europe/Berlin
+    volumes:
+      # CADDYFILE=Caddyfile.staging für die Abnahme-Umgebung
+      - ./ops/caddy/${CADDYFILE:-Caddyfile}:/etc/caddy/Caddyfile:ro,z
+      - ./ops/caddy/common.caddy:/etc/caddy/common.caddy:ro,z
+      - caddy-data:/data
+      - caddy-config:/config
+      - caddy-logs:/var/log/caddy
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    networks: [web]
+    depends_on: [app]
+
+  # Werkzeuge, nur auf Abruf (Profil "tools"):
+  #   … run --rm tools payload migrate
+  #   … run --rm tools import:legacy
+  #   … run --rm -e ADMIN_EMAIL=… -e ADMIN_NAME="…" tools user:create-admin
+  tools:
+    build:
+      context: .
+      target: tools
+    image: bsv1960-tools:latest
+    profiles: [tools]
+    env_file: .env
+    environment: *app-env
+    volumes:
+      - ./uploads:/app/uploads:z
+      - ./legacy-import:/app/legacy-import:ro,z
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    networks: [backend, web]
+    depends_on:
+      db:
+        condition: service_healthy
+
+networks:
+  # Ohne Internetzugang: nur App/Werkzeuge ↔ Datenbank
+  backend:
+    internal: true
+  # IPv6 im Netz, damit Docker IPv6-Verbindungen per NAT (mit Absender-IP) statt über den
+  # userland-proxy (Absender = Docker-Gateway) an Caddy gibt – sonst teilten sich alle IPv6-Besucher
+  # einen Rate-Limit-Zähler. Dazu "userland-proxy": false in /etc/docker/daemon.json (setup-server.sh).
+  web:
+    enable_ipv6: true
+
+volumes:
+  pgdata:
+  next-cache:
+  caddy-data:
+  caddy-config:
+  caddy-logs:

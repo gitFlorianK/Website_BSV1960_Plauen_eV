@@ -118,7 +118,7 @@ Es gibt eine Auth-Collection `users` mit dem Feld `roles` (Mehrfachauswahl).
 
 **Transport und Header**
 - Caddy mit automatischem TLS (nur TLS 1.2+) und HSTS. Nach der Stabilisierung `includeSubDomains; preload`.
-- Strikte CSP mit Nonce (je Antwort neu), gesetzt in `src/proxy.ts` (Next 16, ersetzt die Middleware). Skripte nur mit Nonce plus `'strict-dynamic'`, kein `unsafe-inline`/`unsafe-eval` für Skripte; keine fremden Quellen. Styles erlauben `'unsafe-inline'` (Style-Attribute, ALTCHA). Dadurch werden alle HTML-Seiten dynamisch gerendert (kein ISR mehr); Feeds (`termine.ics`, Sitemap) bleiben statisch.
+- Strikte CSP mit Nonce (je Antwort neu), gesetzt in `src/proxy.ts` (Next 16, ersetzt die Middleware). Skripte nur mit Nonce plus `'strict-dynamic'`, kein `unsafe-inline`/`unsafe-eval` für Skripte; keine fremden Quellen. Styles erlauben `'unsafe-inline'` (Style-Attribute, ALTCHA). Dadurch werden alle HTML-Seiten dynamisch gerendert (kein ISR mehr). Auch die Feeds (`termine.ics`, Sitemap) entstehen zur Laufzeit, mit `Cache-Control: public, max-age=3600`. So braucht der Build keine Datenbank.
 - Weitere Header (`next.config.ts`):
   - `frame-ancestors 'self'` bzw. `X-Frame-Options: SAMEORIGIN` (nötig für die Live-Vorschau im Admin)
   - `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` (Kamera, Mikrofon, Standort u. a. aus), `Cross-Origin-Opener-Policy`/`-Resource-Policy: same-origin`
@@ -147,7 +147,7 @@ Es gibt eine Auth-Collection `users` mit dem Feld `roles` (Mehrfachauswahl).
 - Spamschutz:
   - Honeypot
   - **ALTCHA** (Proof-of-Work, selbst gehostet, cookiefrei, kein Google reCAPTCHA)
-- Rate-Limit pro IP (und pro E-Mail bei Kursanmeldungen), Postgres-gestützt mit atomarem SQL (eigene Umsetzung statt `rate-limiter-flexible`). Zusätzlich ein grobes Limit in Caddy, das `X-Real-IP` setzt.
+- Rate-Limit pro IP (und pro E-Mail bei Kursanmeldungen), Postgres-gestützt mit atomarem SQL (eigene Umsetzung statt `rate-limiter-flexible`). Caddy setzt `X-Real-IP` und überschreibt dabei einen mitgeschickten Header. Ein eigenes Rate-Limit in Caddy entfällt: Das Standard-Image hat kein Rate-Limit-Modul, und die Limits der App greifen je Funktion genauer.
 
 **Uploads**
 - Whitelist für MIME-Typen (JPEG, PNG, WebP, PDF) und Größenlimit.
@@ -221,8 +221,8 @@ bsv1960-website/
 │  └─ payload.config.ts
 ├─ scripts/seed-import.ts     Altinhalte über die Payload Local API importieren
 ├─ tests/int/  tests/e2e/     Vitest (Access, Hooks), Playwright (Flows)
-├─ docker/  Dockerfile  docker-compose.yml  docker-compose.dev.yml  Caddyfile
-├─ ops/                       Server-Setup-Skript, Backup-Skript, Runbook
+├─ Dockerfile  docker-compose.prod.yml  docker-compose.dev.yml
+├─ ops/                       setup-server.sh, deploy.sh, backup.sh, restore.sh, caddy/, systemd/
 ├─ .github/workflows/ci.yml   lint, typecheck, test, audit, build, trivy
 └─ CLAUDE.md
 ```
@@ -252,18 +252,18 @@ bsv1960-website/
    - VPS einrichten (Skript in `ops/`), Caddy, Backups, Monitoring
    - Staging-Subdomain zur Abnahme, danach DNS-Umstellung der Domain
 
-**Stand:** Phasen 1–7 umgesetzt (offene Inhaltspunkte des Vereins: `docs/pruefliste-verein.md`); Altinhalte (Teil von Phase 7) bereits in Phase 3 importiert.
+**Stand:** Phasen 1–8 umgesetzt; Altinhalte (Teil von Phase 7) bereits in Phase 3 importiert. Offen ist die Inbetriebnahme auf dem echten Server samt Staging-Abnahme und DNS-Umstellung (`docs/betrieb.md`, Abschnitt 4). Sie hängt an den offenen Punkten des Vereins (Abschnitt 9, `docs/pruefliste-verein.md`).
 
 **Aus früheren Phasen übernommene Pflichten:**
 - Später (optional): `style-src` ohne `'unsafe-inline'` (ALTCHA über `altcha/external` mit eigener CSS-Datei, Style-Attribute ersetzen).
-- Phase 8:
-  - Caddy muss `X-Real-IP` auf die echte Client-IP setzen und einen vom Client gesendeten Header überschreiben (Grundlage der Rate-Limits).
-  - `TZ=Europe/Berlin` setzen.
-  - `NEXT_PUBLIC_SERVER_URL` muss exakt der öffentlichen Origin entsprechen: Daraus entsteht die CSRF-Liste, ohne Treffer gelten Server Actions als nicht angemeldet.
-  - Erstes Konto mit `pnpm user:create-admin` anlegen, danach 2FA einrichten.
-  - SMTP mit STARTTLS/TLS (wird außer für lokale Hosts erzwungen).
-  - Genau eine App-Instanz betreiben (die Lösch-Jobs laufen im Server-Prozess) oder Jobs per Cron mit `CRON_SECRET` über `/api/payload-jobs/run` anstoßen.
-  - Caddy darf CSP/Header der App nicht überschreiben; HSTS `preload` erst nach Stabilisierung.
+- Phase 8 (umgesetzt; wo es liegt):
+  - `X-Real-IP` setzt Caddy (`ops/caddy/common.caddy`); die echte Client-IP sieht Caddy dank `"userland-proxy": false` (`setup-server.sh`) und IPv6 im Netz `web`.
+  - `TZ=Europe/Berlin` steht in `docker-compose.prod.yml`.
+  - `deploy.sh` prüft, dass `NEXT_PUBLIC_SERVER_URL` zu `SITE_DOMAIN` passt.
+  - Das erste Konto entsteht mit `dc run --rm tools user:create-admin`, danach 2FA einrichten.
+  - SMTP mit STARTTLS/TLS wird erzwungen, außer für lokale Hosts.
+  - Genau eine App-Instanz läuft; die Jobs starten beim Hochfahren (`src/instrumentation.ts`).
+  - Caddy lässt CSP und Header der App unverändert; HSTS `preload` erst nach Stabilisierung.
 
 ## 9. Offene Punkte (vom Verein zu klären)
 

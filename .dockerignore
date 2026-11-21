@@ -1,0 +1,21 @@
+# Nur Quellcode ins Build-Kontext – keine Geheimnisse, Daten oder Build-Reste
+.git
+.github
+.env
+.env.*
+!.env.example
+test.env
+node_modules
+.next
+uploads
+legacy-import
+playwright-report
+test-results
+tsconfig.tsbuildinfo
+*.log
+docs
+ops
+docker
+docker-compose*.yml
+Dockerfile
+.dockerignore

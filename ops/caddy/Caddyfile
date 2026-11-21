@@ -1,0 +1,16 @@
+# Produktion. Variablen aus .env (über docker-compose.prod.yml):
+#   SITE_DOMAIN       Hauptadresse ohne https://, z. B. www.bogensport-plauen.de
+#                     (muss zu NEXT_PUBLIC_SERVER_URL passen)
+#   REDIRECT_DOMAINS  weitere Namen, die auf die Hauptadresse umleiten, z. B. bogensport-plauen.de
+#                     (Pflicht – leer ist der Block ungültig; prüft ops/deploy.sh)
+import common.caddy
+
+{$SITE_DOMAIN} {
+	import logging
+	import app
+}
+
+{$REDIRECT_DOMAINS} {
+	import logging
+	redir https://{$SITE_DOMAIN}{uri} permanent
+}

@@ -1,0 +1,18 @@
+# Staging zur Abnahme (z. B. neu.bogensport-plauen.de): wie Produktion, aber mit Passwortschutz
+# und für Suchmaschinen gesperrt. Variablen aus .env:
+#   SITE_DOMAIN                   wie in Caddyfile
+#   STAGING_USER                  Benutzername für den Passwortschutz
+#   STAGING_PASSWORD_HASH         bcrypt-Hash: docker run --rm caddy:2-alpine caddy hash-password
+#                                 (in .env jedes $ als $$ schreiben)
+import common.caddy
+
+{$SITE_DOMAIN} {
+	import logging
+	header X-Robots-Tag "noindex, nofollow"
+	basic_auth {
+		{$STAGING_USER} {$STAGING_PASSWORD_HASH}
+	}
+	# Zugangsdaten des Passwortschutzes nicht an die App weiterreichen
+	request_header -Authorization
+	import app
+}
