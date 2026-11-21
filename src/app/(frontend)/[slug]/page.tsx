@@ -12,19 +12,6 @@ import { LowImpactHero } from '@/heros/LowImpact'
 import { generateMeta } from '@/utilities/generateMeta'
 import { LivePreviewListener } from '@/components/LivePreviewListener'
 
-export async function generateStaticParams() {
-  const payload = await getPayload({ config: configPromise })
-  const pages = await payload.find({
-    collection: 'pages',
-    draft: false,
-    limit: 1000,
-    overrideAccess: false,
-    pagination: false,
-    select: { slug: true },
-  })
-  return pages.docs.filter((doc) => doc.slug && doc.slug !== 'home').map(({ slug }) => ({ slug }))
-}
-
 type Args = { params: Promise<{ slug?: string }> }
 
 export default async function Page({ params: paramsPromise }: Args) {

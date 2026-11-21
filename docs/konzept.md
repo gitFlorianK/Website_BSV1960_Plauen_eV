@@ -118,11 +118,13 @@ Es gibt eine Auth-Collection `users` mit dem Feld `roles` (Mehrfachauswahl).
 
 **Transport und Header**
 - Caddy mit automatischem TLS (nur TLS 1.2+) und HSTS. Nach der Stabilisierung `includeSubDomains; preload`.
-- Strikte CSP mit Nonce, gesetzt in der Next.js-Middleware. Kein `unsafe-inline` für Skripte.
-- Weitere Header:
-  - `frame-ancestors 'none'`
-  - `X-Content-Type-Options`
-  - `Referrer-Policy: strict-origin-when-cross-origin`
+- Strikte CSP mit Nonce (je Antwort neu), gesetzt in `src/proxy.ts` (Next 16, ersetzt die Middleware). Skripte nur mit Nonce plus `'strict-dynamic'`, kein `unsafe-inline`/`unsafe-eval` für Skripte; keine fremden Quellen. Styles erlauben `'unsafe-inline'` (Style-Attribute, ALTCHA). Dadurch werden alle HTML-Seiten dynamisch gerendert (kein ISR mehr); Feeds (`termine.ics`, Sitemap) bleiben statisch.
+- Weitere Header (`next.config.ts`):
+  - `frame-ancestors 'self'` bzw. `X-Frame-Options: SAMEORIGIN` (nötig für die Live-Vorschau im Admin)
+  - `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` (Kamera, Mikrofon, Standort u. a. aus), `Cross-Origin-Opener-Policy`/`-Resource-Policy: same-origin`
+  - HSTS (2 Jahre, `includeSubDomains`) nur in Produktion, kein `X-Powered-By`
+  - API-Antworten: `default-src 'none'; sandbox`; Dateien: `script-src 'none'`
+- Admin ohne Gravatar (`admin.avatar: 'default'`), zod ohne JIT (`jitless`, sonst `eval`).
   - `Permissions-Policy`
   - COOP
 
@@ -149,7 +151,8 @@ Es gibt eine Auth-Collection `users` mit dem Feld `roles` (Mehrfachauswahl).
 
 **Uploads**
 - Whitelist für MIME-Typen (JPEG, PNG, WebP, PDF) und Größenlimit.
-- Bilder werden mit `sharp` neu kodiert, dabei werden EXIF- und GPS-Daten entfernt.
+- Bilder werden mit `sharp` neu kodiert (auch das Original, max. 2560 px, aufrecht gedreht), dabei werden EXIF- und GPS-Daten entfernt (`src/lib/uploads/hardening.ts`).
+- Dateien werden mit `Cache-Control: private` ausgeliefert (Dokumente zusätzlich `no-cache`), nie aus geteilten Caches. Einfügen per URL (`pasteURL`) ist aus.
 - **Kein SVG-Upload** (XSS-Risiko).
 - Mitglieder-Dokumente werden nur über eine geschützte Route ausgeliefert.
 
@@ -173,7 +176,7 @@ Es gibt eine Auth-Collection `users` mit dem Feld `roles` (Mehrfachauswahl).
 - PostgreSQL ist nicht nach außen erreichbar.
 
 **Audit und Betrieb**
-- `auditLog` protokolliert sicherheitsrelevante Ereignisse.
+- Das Sicherheitsprotokoll (`audit-log`, nur für Admins lesbar, über keine API schreib- oder löschbar) erfasst Anmeldungen, Fehlversuche, Drosselungen, Passwort- und 2FA-Änderungen, Rollen-, E-Mail- und Sperränderungen, Einladungen und Löschungen durch Personen. IPs und unbekannte E-Mail-Adressen nur als HMAC-Hash, keine Inhalte. Aufbewahrung 12 Monate.
 - Uptime-Monitoring.
 - Täglich verschlüsselte Backups (DB-Dump und Medien mit restic), 30 Tage Aufbewahrung. Ein Wiederherstellungstest wird dokumentiert.
 
@@ -190,7 +193,10 @@ Es gibt eine Auth-Collection `users` mit dem Feld `roles` (Mehrfachauswahl).
   | unbestätigte Kursanmeldungen | nach 48 h |
   | Kursanmeldungen | 12 Monate nach Kursende |
   | Kontaktanfragen | nach 6 Monaten |
-  | abgelehnte Mitgliedsanträge | nach 3 Monaten |
+  | abgelehnte Mitgliedsanträge | nach 3 Monaten (seit letzter Änderung) |
+  | Sicherheitsprotokoll | nach 12 Monaten |
+
+  Umgesetzt im Job `purge-retention` (`src/lib/retention.ts`, stündlich im laufenden Produktivserver über `jobs.autoRun`; ein Sammeleintrag im Protokoll nennt nur die Anzahl).
 
 - Einwilligungen werden mit Zeitstempel gespeichert. Bei Minderjährigen ist die Einwilligung der Erziehungsberechtigten Pflicht.
 - **Fotos:** Hinweis auf Einwilligungen der abgebildeten Personen, Galerien können auf „nur Mitglieder“ gestellt werden.
@@ -245,22 +251,18 @@ bsv1960-website/
    - VPS einrichten (Skript in `ops/`), Caddy, Backups, Monitoring
    - Staging-Subdomain zur Abnahme, danach DNS-Umstellung der Domain
 
-**Stand:** Phasen 1–5 umgesetzt; Altinhalte (Teil von Phase 7) bereits in Phase 3 importiert.
+**Stand:** Phasen 1–6 umgesetzt; Altinhalte (Teil von Phase 7) bereits in Phase 3 importiert.
 
 **Aus früheren Phasen übernommene Pflichten:**
-- Phase 6:
-  - Interne Bilder/Dokumente mit `Cache-Control: private` ausliefern (werden jetzt ohne Bildoptimierer direkt über `/api/media/file/…` geladen).
-  - Audit-Log: Anmeldungen, Fehlversuche, 2FA-Zurücksetzen, Rollenänderungen (bisher nur `lastLoginAt` und Server-Log).
-  - CSP: Der QR-Code der 2FA-Einrichtung ist inline-SVG (kein `img-src data:` nötig).
-  - Lösch-Jobs: unbestätigte Kursanmeldungen nach 48 h. Die Bestätigungsmail sagt das bereits zu!
-  - Lösch-Jobs: Kontaktanfragen nach 6 Monaten, abgelehnte Anträge nach 3 Monaten, Kursanmeldungen 12 Monate nach Kursende.
-  - CSP: Das ALTCHA-Widget braucht Web Worker (`worker-src blob:`) und eingebettete Styles. Für eine strikte CSP auf `altcha/external` mit eigener CSS-Datei umstellen.
+- Später (optional): `style-src` ohne `'unsafe-inline'` (ALTCHA über `altcha/external` mit eigener CSS-Datei, Style-Attribute ersetzen).
 - Phase 8:
   - Caddy muss `X-Real-IP` auf die echte Client-IP setzen und einen vom Client gesendeten Header überschreiben (Grundlage der Rate-Limits).
   - `TZ=Europe/Berlin` setzen.
   - `NEXT_PUBLIC_SERVER_URL` muss exakt der öffentlichen Origin entsprechen: Daraus entsteht die CSRF-Liste, ohne Treffer gelten Server Actions als nicht angemeldet.
   - Erstes Konto mit `pnpm user:create-admin` anlegen, danach 2FA einrichten.
   - SMTP mit STARTTLS/TLS (wird außer für lokale Hosts erzwungen).
+  - Genau eine App-Instanz betreiben (die Lösch-Jobs laufen im Server-Prozess) oder Jobs per Cron mit `CRON_SECRET` über `/api/payload-jobs/run` anstoßen.
+  - Caddy darf CSP/Header der App nicht überschreiben; HSTS `preload` erst nach Stabilisierung.
 
 ## 9. Offene Punkte (vom Verein zu klären)
 

@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 import { getPayload } from 'payload'
 
 import { needsTwoFactorSetup } from '@/access'
+import { audit } from '@/lib/audit'
 import { clientIp } from '@/lib/clientIp'
 import { routes } from '@/utilities/routes'
 
@@ -91,6 +92,7 @@ export async function logoutAction(): Promise<void> {
       data: { sessions: (sessions ?? []).filter((s) => s.id !== user._sid) },
       returning: false,
     })
+    await audit(payload, { action: 'logout', actor: user, target: { collection: 'users', id: user.id }, ip: await clientIp() })
   }
   await clearSessionCookie()
   redirect(`${routes.login}?abgemeldet=1`)
@@ -154,7 +156,9 @@ export async function updateProfileAction(_prev: SimpleState, formData: FormData
 export async function logoutOtherDevicesAction(_prev: SimpleState, _formData: FormData): Promise<SimpleState> {
   const user = await getSessionUser()
   if (!user) redirect(routes.login)
-  await revokeSessions(await payloadP(), user.id, user._sid)
+  const payload = await payloadP()
+  await revokeSessions(payload, user.id, user._sid)
+  await audit(payload, { action: 'sessions.revoked', actor: user, target: { collection: 'users', id: user.id }, ip: await clientIp() })
   return { status: 'success', message: 'Alle anderen Geräte wurden abgemeldet.' }
 }
 

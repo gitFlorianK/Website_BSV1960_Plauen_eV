@@ -15,6 +15,7 @@ type Task =
   | { action: 'event'; title: string; slug: string; startDate: string; deadline?: string; visibility: 'public' | 'members' }
   | { action: 'deleteEvent'; slug: string }
   | { action: 'cleanup'; eventSlugPrefix: string; emailPrefix: string }
+  | { action: 'deleteEmptyDrafts' }
 
 const task = JSON.parse(process.env.E2E_SEED ?? '{}') as Task
 const payload = await getPayload({ config })
@@ -66,6 +67,16 @@ switch (task.action) {
     // Reste abgebrochener Läufe
     await payload.delete({ collection: 'events', where: { slug: { like: task.eventSlugPrefix } }, context })
     await payload.delete({ collection: 'users', where: { email: { like: task.emailPrefix } } })
+    break
+  case 'deleteEmptyDrafts':
+    // Die Create-Ansicht im Admin legt per Autosave sofort einen leeren Entwurf an
+    for (const collection of ['pages', 'posts'] as const) {
+      await payload.delete({
+        collection,
+        where: { or: [{ title: { exists: false } }, { title: { equals: '' } }] },
+        context,
+      })
+    }
     break
   default:
     throw new Error(`Unbekannter Auftrag: ${JSON.stringify(task)}`)

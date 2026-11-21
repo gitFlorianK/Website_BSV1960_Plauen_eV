@@ -5,6 +5,7 @@ import { GeistMono } from 'geist/font/mono'
 import { GeistSans } from 'geist/font/sans'
 import React from 'react'
 import { draftMode } from 'next/headers'
+import { connection } from 'next/server'
 
 import { AdminBar } from '@/components/AdminBar'
 import { Footer } from '@/Footer/Component'
@@ -15,6 +16,9 @@ import { getServerSideURL } from '@/utilities/getURL'
 import './globals.css'
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Nonce-CSP (src/proxy.ts): Next versieht Skripte nur beim Rendern je Anfrage mit dem Nonce –
+  // statische/ISR-Seiten hätten keinen und würden blockiert. Daher alle Seiten dynamisch.
+  await connection()
   const { isEnabled } = await draftMode()
 
   return (

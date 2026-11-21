@@ -1,6 +1,6 @@
 import { test, expect, Page } from '@playwright/test'
 import { login } from '../helpers/login'
-import { seedTestUser, cleanupTestUser, testUser } from '../helpers/seedUser'
+import { seed, seedTestUser, cleanupTestUser, testUser } from '../helpers/seedUser'
 
 test.describe('Admin Panel', () => {
   let page: Page
@@ -18,6 +18,7 @@ test.describe('Admin Panel', () => {
   })
 
   test.afterAll(async () => {
+    seed({ action: 'deleteEmptyDrafts' })
     await cleanupTestUser()
   })
 

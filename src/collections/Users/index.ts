@@ -5,6 +5,7 @@ import { randomBytes } from 'crypto'
 import { fieldHasRole, hasRole, isStaffUser, ROLE_LABELS, ROLES, userHasRole } from '@/access'
 import { checkSecondFactor } from '@/lib/auth/twoFactor'
 import { deleteDependents } from '@/hooks/dependents'
+import { audit, requestActor, requestIp } from '@/lib/audit'
 import { AUTH_ERROR } from '@/lib/auth/errors'
 import { sendInvitation } from '@/lib/auth/invite'
 import { checkPassword } from '@/lib/auth/password'
@@ -274,6 +275,26 @@ export const Users: CollectionConfig<'users'> = {
       },
     ],
     afterChange: [
+      async ({ doc, previousDoc, operation, req }) => {
+        // Sicherheitsprotokoll: Anlegen, Rollen, E-Mail, Sperre (in derselben Transaktion)
+        const actor = requestActor(req)
+        const ip = requestIp(req)
+        const target = { collection: 'users', id: doc.id }
+        const log = (action: Parameters<typeof audit>[1]['action'], details?: Record<string, unknown>) =>
+          audit(req.payload, { action, actor, target, ip, details }, req)
+        if (operation === 'create') {
+          await log('user.created', { roles: doc.roles })
+          return doc
+        }
+        const before = [...(previousDoc?.roles ?? [])].sort().join(',')
+        const after = [...(doc.roles ?? [])].sort().join(',')
+        if (before !== after) await log('user.rolesChanged', { from: previousDoc?.roles ?? [], to: doc.roles ?? [] })
+        if (previousDoc?.email && previousDoc.email !== doc.email) await log('user.emailChanged')
+        if (Boolean(previousDoc?.accountDisabled) !== Boolean(doc.accountDisabled)) {
+          await log(doc.accountDisabled ? 'user.disabled' : 'user.enabled')
+        }
+        return doc
+      },
       async ({ doc, req, context }) => {
         if (context.resetTwoFactor) {
           context.resetTwoFactor = false
@@ -293,11 +314,20 @@ export const Users: CollectionConfig<'users'> = {
           // Sessions getrennt schreiben: gemischt mit Spalten wählt Drizzle ein INSERT … ON CONFLICT,
           // das an NOT-NULL-Spalten scheitert
           await req.payload.db.updateOne({ collection: 'users', id: doc.id, req, data: { sessions: [] }, returning: false })
-          req.payload.logger.info({ msg: 'Zwei-Faktor-Anmeldung zurückgesetzt', user: doc.id, by: req.user?.id })
+          await audit(
+            req.payload,
+            { action: 'twoFactor.reset', actor: requestActor(req), target: { collection: 'users', id: doc.id }, ip: requestIp(req) },
+            req,
+          )
         }
         if (context.sendInvite) {
           context.sendInvite = false
           await sendInvitation(req.payload, doc as User, req)
+          await audit(
+            req.payload,
+            { action: 'user.invited', actor: requestActor(req), target: { collection: 'users', id: doc.id }, ip: requestIp(req) },
+            req,
+          )
         }
         return doc
       },

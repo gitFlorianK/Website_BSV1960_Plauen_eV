@@ -1,6 +1,7 @@
 import type { Payload, PayloadRequest } from 'payload'
 import { encode } from 'uqr'
 
+import { audit } from '@/lib/audit'
 import { hitRateLimit } from '@/lib/rateLimit'
 import type { User } from '@/payload-types'
 
@@ -61,6 +62,11 @@ export async function checkSecondFactor(
     const hash = hashRecoveryCode(code)
     if (!hashes.includes(hash)) return 'invalid'
     await save(payload, userId, { twoFactorRecoveryCodes: hashes.filter((h) => h !== hash) }, req)
+    await audit(
+      payload,
+      { action: 'login.recoveryCodeUsed', actor: user, target: { collection: 'users', id: userId }, details: { remaining: hashes.length - 1 } },
+      req,
+    )
   } else {
     return 'invalid'
   }
@@ -107,12 +113,15 @@ export async function confirmTwoFactorSetup(
     twoFactorLastStep: step,
     twoFactorRecoveryCodes: hashes,
   })
+  await audit(payload, { action: 'twoFactor.enabled', actor: user, target: { collection: 'users', id: userId } })
   return { ok: true, recoveryCodes: codes }
 }
 
 export async function regenerateRecoveryCodes(payload: Payload, userId: number): Promise<string[]> {
   const { codes, hashes } = generateRecoveryCodes()
   await save(payload, userId, { twoFactorRecoveryCodes: hashes })
+  const user = await loadSecrets(payload, userId)
+  await audit(payload, { action: 'twoFactor.codesRegenerated', actor: user, target: { collection: 'users', id: userId } })
   return codes
 }
 
@@ -124,4 +133,6 @@ export async function disableTwoFactor(payload: Payload, userId: number): Promis
     twoFactorRecoveryCodes: null,
     twoFactorLastStep: null,
   })
+  const user = await loadSecrets(payload, userId)
+  await audit(payload, { action: 'twoFactor.disabled', actor: user, target: { collection: 'users', id: userId } })
 }

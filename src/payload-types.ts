@@ -84,6 +84,7 @@ export interface Config {
     'membership-applications': MembershipApplication;
     documents: Document;
     users: User;
+    'audit-log': AuditLog;
     'rate-limits': RateLimit;
     redirects: Redirect;
     search: Search;
@@ -112,6 +113,7 @@ export interface Config {
     'membership-applications': MembershipApplicationsSelect<false> | MembershipApplicationsSelect<true>;
     documents: DocumentsSelect<false> | DocumentsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
+    'audit-log': AuditLogSelect<false> | AuditLogSelect<true>;
     'rate-limits': RateLimitsSelect<false> | RateLimitsSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     search: SearchSelect<false> | SearchSelect<true>;
@@ -129,11 +131,13 @@ export interface Config {
     'site-settings': SiteSetting;
     header: Header;
     footer: Footer;
+    'payload-jobs-stats': PayloadJobsStat;
   };
   globalsSelect: {
     'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
     header: HeaderSelect<false> | HeaderSelect<true>;
     footer: FooterSelect<false> | FooterSelect<true>;
+    'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
   locale: null;
   widgets: {
@@ -142,6 +146,7 @@ export interface Config {
   user: User;
   jobs: {
     tasks: {
+      'purge-retention': TaskPurgeRetention;
       schedulePublish: TaskSchedulePublish;
       inline: {
         input: unknown;
@@ -1053,6 +1058,63 @@ export interface Document {
   focalY?: number | null;
 }
 /**
+ * Sicherheitsrelevante Ereignisse der letzten 12 Monate. Nur lesbar.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "audit-log".
+ */
+export interface AuditLog {
+  id: number;
+  action:
+    | 'login.success'
+    | 'login.failed'
+    | 'login.rateLimited'
+    | 'login.disabled'
+    | 'login.twoFactorFailed'
+    | 'login.twoFactorLocked'
+    | 'login.recoveryCodeUsed'
+    | 'logout'
+    | 'sessions.revoked'
+    | 'password.resetRequested'
+    | 'password.reset'
+    | 'password.changed'
+    | 'twoFactor.enabled'
+    | 'twoFactor.disabled'
+    | 'twoFactor.codesRegenerated'
+    | 'twoFactor.reset'
+    | 'user.created'
+    | 'user.invited'
+    | 'user.rolesChanged'
+    | 'user.emailChanged'
+    | 'user.disabled'
+    | 'user.enabled'
+    | 'doc.deleted'
+    | 'retention.purged';
+  actor?: (number | null) | User;
+  /**
+   * Bleibt erhalten, auch wenn das Konto später gelöscht wird.
+   */
+  actorName?: string | null;
+  targetCollection?: string | null;
+  targetId?: string | null;
+  ipHash?: string | null;
+  /**
+   * Nur bei Anmeldeversuchen für unbekannte Konten.
+   */
+  emailHash?: string | null;
+  details?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "rate-limits".
  */
@@ -1189,7 +1251,7 @@ export interface PayloadJob {
     | {
         executedAt: string;
         completedAt: string;
-        taskSlug: 'inline' | 'schedulePublish';
+        taskSlug: 'inline' | 'purge-retention' | 'schedulePublish';
         taskID: string;
         input?:
           | {
@@ -1222,10 +1284,19 @@ export interface PayloadJob {
         id?: string | null;
       }[]
     | null;
-  taskSlug?: ('inline' | 'schedulePublish') | null;
+  taskSlug?: ('inline' | 'purge-retention' | 'schedulePublish') | null;
   queue?: string | null;
   waitUntil?: string | null;
   processing?: boolean | null;
+  meta?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1303,6 +1374,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'users';
         value: number | User;
+      } | null)
+    | ({
+        relationTo: 'audit-log';
+        value: number | AuditLog;
       } | null)
     | ({
         relationTo: 'rate-limits';
@@ -2027,6 +2102,22 @@ export interface UsersSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "audit-log_select".
+ */
+export interface AuditLogSelect<T extends boolean = true> {
+  action?: T;
+  actor?: T;
+  actorName?: T;
+  targetCollection?: T;
+  targetId?: T;
+  ipHash?: T;
+  emailHash?: T;
+  details?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "rate-limits_select".
  */
 export interface RateLimitsSelect<T extends boolean = true> {
@@ -2114,6 +2205,7 @@ export interface PayloadJobsSelect<T extends boolean = true> {
   queue?: T;
   waitUntil?: T;
   processing?: T;
+  meta?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2256,6 +2348,24 @@ export interface Footer {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs-stats".
+ */
+export interface PayloadJobsStat {
+  id: number;
+  stats?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "site-settings_select".
  */
 export interface SiteSettingsSelect<T extends boolean = true> {
@@ -2352,6 +2462,16 @@ export interface FooterSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs-stats_select".
+ */
+export interface PayloadJobsStatsSelect<T extends boolean = true> {
+  stats?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "collections_widget".
  */
 export interface CollectionsWidget {
@@ -2359,6 +2479,14 @@ export interface CollectionsWidget {
     [k: string]: unknown;
   };
   width: 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskPurge-retention".
+ */
+export interface TaskPurgeRetention {
+  input?: unknown;
+  output?: unknown;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

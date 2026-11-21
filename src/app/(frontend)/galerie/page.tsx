@@ -12,8 +12,6 @@ import { formatDate } from '@/utilities/dates'
 import { mergeOpenGraph, SITE_NAME } from '@/utilities/mergeOpenGraph'
 import { routes } from '@/utilities/routes'
 
-export const revalidate = 600
-
 const cover = (g: { coverImage?: number | MediaType | null; images?: (number | MediaType)[] | null }) => {
   const candidates = [g.coverImage, ...(g.images ?? [])]
   return (

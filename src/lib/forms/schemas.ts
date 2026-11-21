@@ -2,8 +2,14 @@ import { z } from 'zod'
 
 import { ageOn, dayInClubTz } from '@/utilities/dates'
 
+import { BOW_TYPES, CONTACT_TOPICS } from './options'
+
+export { BOW_TYPES, CONTACT_TOPICS }
+
 // Fallback-Meldungen (z. B. fehlende Felder) auf Deutsch
 z.config(z.locales.de())
+// Kein JIT per `Function()` – die CSP verbietet eval (zod würde es sonst bei jedem Laden probieren)
+z.config({ jitless: true })
 
 /*
  * Serverseitige Validierung aller öffentlichen Formulare (Fehlermeldungen auf Deutsch, „du“).
@@ -82,13 +88,6 @@ const requireGuardian = (
 
 const privacy = checked('Bitte bestätige, dass du die Datenschutzhinweise gelesen hast.')
 
-export const CONTACT_TOPICS = {
-  general: 'Allgemeine Frage',
-  beginners: 'Anfängerkurs / Probetraining',
-  event: 'Bogenschießen bei einer Veranstaltung',
-  other: 'Sonstiges',
-} as const
-
 export const contactSchema = z.object({
   name: text('deinen Namen', 200),
   email,
@@ -97,14 +96,6 @@ export const contactSchema = z.object({
   message: longText(5000, true),
   privacy,
 })
-
-export const BOW_TYPES = {
-  undecided: 'Noch offen',
-  recurve: 'Recurve',
-  compound: 'Compound',
-  longbow: 'Langbogen',
-  hunting: 'Jagdbogen',
-} as const
 
 export const membershipSchema = z
   .object({

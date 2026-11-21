@@ -7,8 +7,6 @@ import { LowImpactHero } from '@/heros/LowImpact'
 import { SITE_NAME } from '@/utilities/mergeOpenGraph'
 import { routes } from '@/utilities/routes'
 
-export const revalidate = 600
-
 type Args = { params: Promise<{ pageNumber: string }> }
 
 const parsePage = (v: string) => (/^\d{1,4}$/.test(v) ? Number(v) : NaN)

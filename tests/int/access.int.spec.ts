@@ -26,6 +26,7 @@ const CLEANUP_ORDER: CollectionSlug[] = [
   'contact-requests',
   'membership-applications',
   'rate-limits',
+  'audit-log',
   'search',
   'posts',
   'pages',
@@ -497,5 +498,20 @@ describe('Formulareingänge (Kontakt, Mitgliedsanträge, Rate-Limits)', () => {
 
   it('Rate-Limit-Tabelle ist für niemanden über die API sichtbar', async () => {
     await expectDenied(payload.find({ collection: 'rate-limits', overrideAccess: false, user: u.admin }))
+  })})
+
+describe('Sicherheitsprotokoll', () => {
+  it('nur Admins lesen; niemand legt an, ändert oder löscht', async () => {
+    const entry = await payload.create({ collection: 'audit-log', data: { action: 'logout' } })
+    expect((await payload.find({ collection: 'audit-log', overrideAccess: false, user: u.admin })).totalDocs).toBeGreaterThan(0)
+    await expectDenied(payload.find({ collection: 'audit-log', overrideAccess: false }))
+    for (const user of [u.vorstand, u.redakteur, u.trainer, u.mitglied, u.gesperrt]) {
+      await expectDenied(payload.find({ collection: 'audit-log', overrideAccess: false, user }))
+    }
+    for (const user of [u.admin, u.vorstand]) {
+      await expectDenied(payload.create({ collection: 'audit-log', overrideAccess: false, user, data: { action: 'logout' } }))
+      await expectDenied(payload.update({ collection: 'audit-log', id: entry.id, overrideAccess: false, user, data: { actorName: 'x' } }))
+      await expectDenied(payload.delete({ collection: 'audit-log', id: entry.id, overrideAccess: false, user }))
+    }
   })
 })

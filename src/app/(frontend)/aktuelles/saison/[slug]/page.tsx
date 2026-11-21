@@ -10,8 +10,6 @@ import { formatDate } from '@/utilities/dates'
 import { SITE_NAME } from '@/utilities/mergeOpenGraph'
 import { routes } from '@/utilities/routes'
 
-export const revalidate = 600
-
 type Args = {
   params: Promise<{ slug: string }>
   searchParams: Promise<{ seite?: string }>
@@ -28,11 +26,6 @@ const findSeason = cache(async (slug: string) => {
   })
   return docs[0] ?? null
 })
-
-export async function generateStaticParams() {
-  const seasons = await findSeasons()
-  return seasons.filter((s) => s.slug).map((s) => ({ slug: s.slug as string }))
-}
 
 export default async function SeasonPage({ params, searchParams }: Args) {
   const { slug } = await params

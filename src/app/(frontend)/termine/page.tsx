@@ -11,8 +11,6 @@ import { getServerSideURL } from '@/utilities/getURL'
 import { mergeOpenGraph, SITE_NAME } from '@/utilities/mergeOpenGraph'
 import { routes } from '@/utilities/routes'
 
-export const revalidate = 600
-
 const groupByMonth = (events: Event[]) => {
   const groups = new Map<string, Event[]>()
   for (const e of events) {

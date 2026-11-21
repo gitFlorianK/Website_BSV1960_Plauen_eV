@@ -3,7 +3,7 @@
 import React from 'react'
 
 import { membershipAction } from '@/lib/forms/actions'
-import { BOW_TYPES } from '@/lib/forms/schemas'
+import { BOW_TYPES } from '@/lib/forms/options'
 
 import { CheckboxField, Fieldset, SelectField, TextArea, TextField } from './Fields'
 import { FormShell } from './FormShell'

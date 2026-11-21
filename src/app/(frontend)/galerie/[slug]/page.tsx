@@ -12,8 +12,6 @@ import { formatDate } from '@/utilities/dates'
 import { mergeOpenGraph, SITE_NAME } from '@/utilities/mergeOpenGraph'
 import { routes } from '@/utilities/routes'
 
-export const revalidate = 600
-
 type Args = { params: Promise<{ slug: string }> }
 
 const findGallery = cache(async (slug: string) => {
@@ -28,18 +26,6 @@ const findGallery = cache(async (slug: string) => {
   })
   return docs[0] ?? null
 })
-
-export async function generateStaticParams() {
-  const payload = await getPayload({ config: configPromise })
-  const { docs } = await payload.find({
-    collection: 'galleries',
-    limit: 500,
-    overrideAccess: false,
-    pagination: false,
-    select: { slug: true },
-  })
-  return docs.filter((d) => d.slug).map((d) => ({ slug: d.slug }))
-}
 
 export default async function GalleryPage({ params }: Args) {
   const gallery = await findGallery(decodeURIComponent((await params).slug))

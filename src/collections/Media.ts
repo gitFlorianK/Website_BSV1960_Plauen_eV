@@ -10,6 +10,7 @@ import { fileURLToPath } from 'url'
 
 import { isStaff, hasRole, publicOrMembers } from '@/access'
 import { visibilityField } from '@/fields/visibility'
+import { cacheHeaders, STRIP_AND_LIMIT_ORIGINAL } from '@/lib/uploads/hardening'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -55,6 +56,11 @@ export const Media: CollectionConfig<'media'> = {
   upload: {
     staticDir: path.resolve(dirname, '../../uploads/media'),
     mimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'application/pdf'],
+    resizeOptions: STRIP_AND_LIMIT_ORIGINAL,
+    // Browser darf eine Stunde cachen, geteilte Caches nie (interne Bilder hängen am Login)
+    modifyResponseHeaders: cacheHeaders('private, max-age=3600'),
+    // URL-Einfügen lädt im Browser von fremden Servern – verbietet die CSP ohnehin
+    pasteURL: false,
     adminThumbnail: 'thumbnail',
     focalPoint: true,
     imageSizes: [

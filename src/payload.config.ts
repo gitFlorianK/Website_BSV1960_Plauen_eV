@@ -22,6 +22,9 @@ import { MembershipApplications } from './collections/MembershipApplications'
 import { Pages } from './collections/Pages'
 import { Posts } from './collections/Posts'
 import { RateLimits } from './collections/RateLimits'
+import { AuditLog } from './collections/AuditLog'
+import { withDeleteAudit } from './hooks/auditDelete'
+import { purgeRetention } from './lib/retention'
 import { Seasons } from './collections/Seasons'
 import { Sponsors } from './collections/Sponsors'
 import { TrainingSlots } from './collections/TrainingSlots'
@@ -56,6 +59,8 @@ const safeEqual = (a: string, b: string) => {
 
 export default buildConfig({
   admin: {
+    // Kein Gravatar: würde einen Hash der E-Mail-Adresse an einen Drittanbieter senden
+    avatar: 'default',
     components: {
       beforeLogin: ['@/components/BeforeLogin'],
     },
@@ -110,9 +115,10 @@ export default buildConfig({
     MembershipApplications,
     Documents,
     Users,
+    AuditLog,
     // intern
     RateLimits,
-  ],
+  ].map(withDeleteAudit),
   globals: [SiteSettings, Header, Footer],
   // Ohne SMTP_HOST (z. B. CI) gibt Payload Mails nur im Log aus.
   email: process.env.SMTP_HOST
@@ -160,6 +166,23 @@ export default buildConfig({
         return safeEqual(authHeader, `Bearer ${secret}`)
       },
     },
-    tasks: [],
+    tasks: [
+      {
+        // Löschfristen (src/lib/retention.ts) – stündlich, damit „nach 48 h“ eingehalten wird
+        slug: 'purge-retention',
+        label: 'Löschfristen anwenden',
+        retries: 2,
+        schedule: [{ cron: '0 7 * * * *', queue: 'maintenance' }],
+        handler: async ({ req }) => {
+          const result = await purgeRetention(req.payload)
+          return { output: result }
+        },
+      },
+    ],
+    // Im laufenden Server (next start) prüfen und ausführen; nicht beim Build, in Tests oder Skripten
+    autoRun: [{ cron: '0 */5 * * * *', queue: 'maintenance', limit: 5 }],
+    shouldAutoRun: () => process.env.NODE_ENV === 'production' && process.env.NEXT_PHASE !== 'phase-production-build',
+    // Erledigte Jobs nicht aufheben (keine personenbezogenen Daten im Job-Log ansammeln)
+    deleteJobOnComplete: true,
   },
 })

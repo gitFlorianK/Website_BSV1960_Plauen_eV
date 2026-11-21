@@ -3,6 +3,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 
 import { hasRole, isLoggedIn } from '@/access'
+import { cacheHeaders, STRIP_AND_LIMIT_ORIGINAL } from '@/lib/uploads/hardening'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -52,5 +53,10 @@ export const Documents: CollectionConfig<'documents'> = {
       'application/vnd.oasis.opendocument.text',
       'application/vnd.oasis.opendocument.spreadsheet',
     ],
+    // Gescannte Bilder: Metadaten entfernen (PDFs/Office-Dateien bleiben unverändert)
+    resizeOptions: STRIP_AND_LIMIT_ORIGINAL,
+    // Nur für Eingeloggte: bei jedem Abruf neu prüfen, nie in geteilten Caches
+    modifyResponseHeaders: cacheHeaders('private, no-cache'),
+    pasteURL: false,
   },
 }

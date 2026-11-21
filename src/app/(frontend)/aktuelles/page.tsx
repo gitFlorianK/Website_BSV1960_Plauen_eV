@@ -6,8 +6,6 @@ import { LowImpactHero } from '@/heros/LowImpact'
 import { mergeOpenGraph, SITE_NAME } from '@/utilities/mergeOpenGraph'
 import { routes } from '@/utilities/routes'
 
-export const revalidate = 600
-
 export default async function PostsPage() {
   const [result, seasons] = await Promise.all([findPosts({ page: 1 }), findSeasons()])
   return (

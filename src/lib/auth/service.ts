@@ -1,6 +1,7 @@
 import type { Payload } from 'payload'
 
 import { verifyAltcha } from '@/lib/altcha'
+import { audit, type AuditAction } from '@/lib/audit'
 import { sendText } from '@/lib/mail'
 import { hitRateLimit } from '@/lib/rateLimit'
 import { keyedHash } from '@/lib/secrets'
@@ -43,7 +44,11 @@ export async function login(
     [`login:email:${keyedHash('email', email)}`, 15],
   ] as const) {
     const rl = await hitRateLimit(payload, key, limit, 15 * 60)
-    if (!rl.ok) return { ok: false, error: 'rateLimited', retryAfterMin: Math.ceil(rl.retryAfterSec / 60) }
+    if (!rl.ok) {
+      // Nur den ersten gedrosselten Versuch protokollieren (sonst flutet ein Angriff das Protokoll)
+      if (rl.count === limit + 1) await logFailure(payload, 'login.rateLimited', email, ctx)
+      return { ok: false, error: 'rateLimited', retryAfterMin: Math.ceil(rl.retryAfterSec / 60) }
+    }
   }
   if (!email || !password) return { ok: false, error: 'invalid' }
 
@@ -53,22 +58,42 @@ export async function login(
     const result = await payload.login({ collection: 'users', data: { email, password }, context })
     const token = typeof context.issuedToken === 'string' ? context.issuedToken : null
     if (!token || !result.exp || !result.user) return { ok: false, error: 'invalid' }
-    return { ok: true, token, exp: result.exp, user: result.user as User }
+    const user = result.user as User
+    await audit(payload, { action: 'login.success', actor: user, target: { collection: 'users', id: user.id }, ip: ctx.ip })
+    return { ok: true, token, exp: result.exp, user }
   } catch (err) {
+    // Protokoll erst hier – im Login selbst würde der Eintrag mit der Transaktion zurückgerollt
     switch (authErrorCode(err)) {
       case AUTH_ERROR.disabled:
+        await logFailure(payload, 'login.disabled', email, ctx)
         return { ok: false, error: 'disabled' }
       case AUTH_ERROR.twoFactorRequired:
         return { ok: false, error: 'twoFactorRequired' }
       case AUTH_ERROR.twoFactorInvalid:
+        await logFailure(payload, 'login.twoFactorFailed', email, ctx)
         return { ok: false, error: 'twoFactorInvalid' }
       case AUTH_ERROR.twoFactorLocked:
+        await logFailure(payload, 'login.twoFactorLocked', email, ctx)
         return { ok: false, error: 'twoFactorLocked' }
       default:
         // Falsches Passwort, unbekanntes Konto, gesperrt nach Fehlversuchen → bewusst gleiche Antwort
+        await logFailure(payload, 'login.failed', email, ctx)
         return { ok: false, error: 'invalid' }
     }
   }
+}
+
+/** Fehlversuch protokollieren: bekanntes Konto als Ziel-ID, unbekannte Adresse nur als Hash. */
+async function logFailure(payload: Payload, action: AuditAction, email: string, ctx: Ctx) {
+  const user = email
+    ? ((await payload.db.findOne({ collection: 'users', where: { email: { equals: email } } })) as User | null)
+    : null
+  await audit(payload, {
+    action,
+    target: user ? { collection: 'users', id: user.id } : undefined,
+    email: user ? undefined : email || undefined,
+    ip: ctx.ip,
+  })
 }
 
 /** Prüft das Passwort eines Kontos, ohne eine Session anzulegen (zählt Fehlversuche wie ein Login). */
@@ -110,6 +135,7 @@ export async function requestPasswordReset(
   const { docs } = await payload.find({ collection: 'users', where: { email: { equals: email } }, limit: 1, depth: 0 })
   const user = docs[0]
   if (!user || user.accountDisabled) return neutral
+  await audit(payload, { action: 'password.resetRequested', target: { collection: 'users', id: user.id }, ip: ctx.ip })
 
   try {
     const token = await payload.forgotPassword({
@@ -174,6 +200,7 @@ export async function resetPasswordWithToken(
   }
   // resetPassword legt eine Session an – verwerfen und alle Geräte abmelden
   await revokeSessions(payload, user.id)
+  await audit(payload, { action: 'password.reset', actor: user, target: { collection: 'users', id: user.id }, ip: ctx.ip })
   return { ok: true }
 }
 
@@ -198,6 +225,7 @@ export async function changePassword(
   await payload.update({ collection: 'users', id: user.id, data: { password: input.password as string }, overrideAccess: true })
   const keep = before.filter((s) => s.id === user._sid)
   await payload.db.updateOne({ collection: 'users', id: user.id, data: { sessions: keep }, returning: false })
+  await audit(payload, { action: 'password.changed', actor: user, target: { collection: 'users', id: user.id } })
   return { ok: true }
 }
 

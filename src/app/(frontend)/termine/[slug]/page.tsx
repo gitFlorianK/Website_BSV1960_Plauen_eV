@@ -13,8 +13,6 @@ import { osmLink } from '@/utilities/osm'
 import { routes } from '@/utilities/routes'
 import { isSafeUrl } from '@/utilities/safeUrl'
 
-export const revalidate = 600
-
 type Args = { params: Promise<{ slug: string }> }
 
 const findEvent = cache(async (slug: string) => {
@@ -29,19 +27,6 @@ const findEvent = cache(async (slug: string) => {
   })
   return docs[0] ?? null
 })
-
-export async function generateStaticParams() {
-  const payload = await getPayload({ config: configPromise })
-  const { docs } = await payload.find({
-    collection: 'events',
-    limit: 500,
-    overrideAccess: false,
-    pagination: false,
-    select: { slug: true },
-    sort: '-startDate',
-  })
-  return docs.filter((d) => d.slug).map((d) => ({ slug: d.slug }))
-}
 
 export default async function EventPage({ params }: Args) {
   const event = await findEvent(decodeURIComponent((await params).slug))

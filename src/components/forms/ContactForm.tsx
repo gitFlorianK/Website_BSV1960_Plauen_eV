@@ -3,7 +3,7 @@
 import React from 'react'
 
 import { contactAction } from '@/lib/forms/actions'
-import { CONTACT_TOPICS } from '@/lib/forms/schemas'
+import { CONTACT_TOPICS } from '@/lib/forms/options'
 
 import { SelectField, TextArea, TextField } from './Fields'
 import { FormShell } from './FormShell'
