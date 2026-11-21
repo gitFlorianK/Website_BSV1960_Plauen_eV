@@ -1131,7 +1131,7 @@ export interface RateLimit {
 export interface Redirect {
   id: number;
   /**
-   * You will need to rebuild the website when changing this field.
+   * Pfad mit / am Anfang, z. B. /alte-seite oder /index.php/verein. Gilt nach dem Speichern sofort (dauerhafte Weiterleitung, 308).
    */
   from: string;
   to?: {

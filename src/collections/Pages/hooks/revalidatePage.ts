@@ -10,8 +10,8 @@ import type { Page } from '../../../payload-types'
  */
 const revalidateAll = () => {
   revalidatePath('/', 'layout')
-  revalidateTag('global_header', 'max')
-  revalidateTag('global_footer', 'max')
+  revalidateTag('global_header', { expire: 0 })
+  revalidateTag('global_footer', { expire: 0 })
 }
 
 export const revalidatePage: CollectionAfterChangeHook<Page> = ({

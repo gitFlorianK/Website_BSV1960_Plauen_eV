@@ -34,6 +34,7 @@ export const plugins: Plugin[] = [
         delete: hasRole('vorstand', 'redakteur'),
       },
       admin: { group: 'Einstellungen' },
+      labels: { singular: 'Weiterleitung', plural: 'Weiterleitungen' },
       // @ts-expect-error - This is a valid override, mapped fields don't resolve to the same type
       fields: ({ defaultFields }) => {
         return defaultFields.map((field) => {
@@ -41,7 +42,8 @@ export const plugins: Plugin[] = [
             return {
               ...field,
               admin: {
-                description: 'You will need to rebuild the website when changing this field.',
+                description:
+                  'Pfad mit / am Anfang, z. B. /alte-seite oder /index.php/verein. Gilt nach dem Speichern sofort (dauerhafte Weiterleitung, 308).',
               },
             }
           }
@@ -50,6 +52,8 @@ export const plugins: Plugin[] = [
       },
       hooks: {
         afterChange: [revalidateRedirects],
+        // Ohne diesen Hook bliebe eine gelöschte Weiterleitung im Cache aktiv
+        afterDelete: [revalidateRedirects],
       },
     },
   }),

@@ -82,6 +82,19 @@ export default buildConfig({
   i18n: {
     supportedLanguages: { de },
     fallbackLanguage: 'de',
+    // Das Redirects-Plugin bringt kein Deutsch mit
+    translations: {
+      de: {
+        'plugin-redirects': {
+          fromUrl: 'Alte Adresse (Pfad)',
+          toUrlType: 'Ziel',
+          internalLink: 'Seite oder Beitrag',
+          customUrl: 'Eigene Adresse',
+          documentToRedirect: 'Weiterleiten auf',
+          redirectType: 'Art der Weiterleitung',
+        },
+      },
+    },
   },
   editor: defaultLexical,
   db: postgresAdapter({

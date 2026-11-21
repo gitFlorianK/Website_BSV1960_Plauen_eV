@@ -12,14 +12,24 @@ import { generateMeta } from '@/utilities/generateMeta'
 import { getPreviewUser } from '@/utilities/previewUser'
 import { LivePreviewListener } from '@/components/LivePreviewListener'
 
-type Args = { params: Promise<{ slug?: string }> }
+/**
+ * Seiten aus dem CMS. Catch-all statt `[slug]`, damit auch tiefe unbekannte Adressen (`/a/b`,
+ * `/aktuelles/x/y`) hier landen: CMS-Weiterleitungen werden geprüft, sonst kommt die eigene
+ * 404-Seite. Ohne Catch-all zeigte Next dafür seine Standardseite ohne Layout (zwei Root-Layouts).
+ */
+type Args = { params: Promise<{ slug?: string[] }> }
+
+/** Seiten-Slug aus den Segmenten; mehrteilige Pfade sind nie eine Seite. */
+const resolve = async (paramsPromise: Args['params']) => {
+  const { slug: segments = ['home'] } = await paramsPromise
+  const decoded = segments.map((s) => decodeURIComponent(s))
+  return { url: '/' + decoded.join('/'), slug: decoded.length === 1 ? decoded[0] : null }
+}
 
 export default async function Page({ params: paramsPromise }: Args) {
   const draft = Boolean(await getPreviewUser())
-  const { slug = 'home' } = await paramsPromise
-  const decodedSlug = decodeURIComponent(slug)
-  const url = '/' + decodedSlug
-  const page = await queryPageBySlug({ slug: decodedSlug })
+  const { url, slug } = await resolve(paramsPromise)
+  const page = slug ? await queryPageBySlug({ slug }) : null
 
   if (!page) return <PayloadRedirects url={url} />
 
@@ -45,8 +55,8 @@ export default async function Page({ params: paramsPromise }: Args) {
 }
 
 export async function generateMetadata({ params: paramsPromise }: Args): Promise<Metadata> {
-  const { slug = 'home' } = await paramsPromise
-  const page = await queryPageBySlug({ slug: decodeURIComponent(slug) })
+  const { slug } = await resolve(paramsPromise)
+  const page = slug ? await queryPageBySlug({ slug }) : null
   return generateMeta({ doc: page })
 }
 

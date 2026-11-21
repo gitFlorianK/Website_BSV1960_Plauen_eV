@@ -42,6 +42,27 @@ test.describe('Admin Panel', () => {
     await expect(listViewArtifact).toBeVisible()
   })
 
+  test('Weiterleitungen: mehrteilige alte Adresse, wirkt sofort und ist nach dem Löschen weg', async ({ request }) => {
+    const from = `/index.php/e2e-${Date.now()}/alt`
+    // Vorher: unbekannte tiefe Adresse → eigene 404-Seite (Catch-all statt Next-Standardseite)
+    expect((await request.get(from, { maxRedirects: 0 })).status()).toBe(404)
+
+    await page.goto('/admin/collections/redirects')
+    await expect(page.locator('h1', { hasText: 'Weiterleitungen' }).first()).toBeVisible()
+    // Wie das Admin-Panel: Cookie-Anmeldung zählt nur mit passendem Origin (CSRF-Schutz)
+    const headers = { origin: 'http://127.0.0.1:3000' }
+    const created = await page.request.post('/api/redirects', { headers, data: { from, to: { type: 'custom', url: '/verein' } } })
+    expect(created.status()).toBe(201)
+    const { doc } = await created.json()
+
+    const res = await request.get(from, { maxRedirects: 0 })
+    expect(res.status()).toBe(308)
+    expect(res.headers().location).toBe('/verein')
+
+    expect((await page.request.delete(`/api/redirects/${doc.id}`, { headers })).status()).toBe(200)
+    expect((await request.get(from, { maxRedirects: 0 })).status()).toBe(404)
+  })
+
   test('can navigate to edit view', async () => {
     await page.goto('/admin/collections/pages/create')
     await expect(page).toHaveURL(/\/admin\/collections\/pages\/[a-zA-Z0-9-_]+/)

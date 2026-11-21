@@ -86,9 +86,12 @@ test.describe('Frontend', () => {
     await expect(page.getByRole('link', { name: 'Datenschutzhinweise' })).toHaveAttribute('href', '/datenschutz')
   })
 
-  test('404-Seite auf Deutsch', async ({ page }) => {
-    const res = await page.goto('/gibt-es-nicht')
-    expect(res?.status()).toBe(404)
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Daneben getroffen')
+  test('404-Seite auf Deutsch – auch für tiefe und verschachtelte Adressen, mit Layout', async ({ page }) => {
+    for (const path of ['/gibt-es-nicht', '/a/b/c', '/aktuelles/gibt/es-nicht', '/termine/x/y']) {
+      const res = await page.goto(path)
+      expect(res?.status(), path).toBe(404)
+      await expect(page.getByRole('heading', { level: 1 }), path).toHaveText('Daneben getroffen')
+      await expect(page.getByRole('link', { name: 'Training' }).first(), path).toBeVisible()
+    }
   })
 })

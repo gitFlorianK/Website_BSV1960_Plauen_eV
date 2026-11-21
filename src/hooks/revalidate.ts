@@ -24,7 +24,8 @@ export const revalidateSiteAfterDelete: CollectionAfterDeleteHook = ({ doc, coll
 /** Für Globals, die über getCachedGlobal (Tag `global_<slug>`) gelesen werden. */
 export const revalidateGlobal: GlobalAfterChangeHook = ({ doc, global, req }) => {
   if (!req.context.disableRevalidate) {
-    revalidateTag(`global_${global.slug}`, 'max')
+    // expire: 0 – wer im Admin speichert und die Seite öffnet, sieht sofort den neuen Stand (nicht erst beim zweiten Aufruf)
+    revalidateTag(`global_${global.slug}`, { expire: 0 })
     revalidateAll(`global ${global.slug}`, req.payload.logger)
   }
   return doc
