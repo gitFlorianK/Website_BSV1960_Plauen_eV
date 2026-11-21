@@ -473,12 +473,45 @@ export interface Category {
 export interface User {
   id: number;
   name: string;
+  /**
+   * Administrator und Vorstand wirken erst, wenn die Person die Zwei-Faktor-Anmeldung eingerichtet hat.
+   */
   roles: ('admin' | 'vorstand' | 'trainer' | 'redakteur' | 'mitglied')[];
   /**
    * Gesperrte Konten können sich nicht anmelden und haben keine Rechte.
    */
   accountDisabled?: boolean | null;
   phone?: string | null;
+  /**
+   * Die Person bekommt einen 72 Stunden gültigen Link und legt ihr Passwort selbst fest. Das oben eingetragene Passwort wird dabei verworfen.
+   */
+  sendInvite?: boolean | null;
+  /**
+   * Neuer 72-Stunden-Link zum Festlegen des Passworts (z. B. wenn der alte abgelaufen ist).
+   */
+  resendInvite?: boolean | null;
+  invitedAt?: string | null;
+  lastLoginAt?: string | null;
+  /**
+   * Einrichten kann jede Person selbst unter „Mitgliederbereich → Sicherheit“.
+   */
+  twoFactorEnabled?: boolean | null;
+  /**
+   * Nur nach Rückfrage bei der Person selbst (Identität prüfen!).
+   */
+  resetTwoFactor?: boolean | null;
+  twoFactorSecret?: string | null;
+  twoFactorPendingSecret?: string | null;
+  twoFactorRecoveryCodes?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  twoFactorLastStep?: number | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -1964,6 +1997,16 @@ export interface UsersSelect<T extends boolean = true> {
   roles?: T;
   accountDisabled?: T;
   phone?: T;
+  sendInvite?: T;
+  resendInvite?: T;
+  invitedAt?: T;
+  lastLoginAt?: T;
+  twoFactorEnabled?: T;
+  resetTwoFactor?: T;
+  twoFactorSecret?: T;
+  twoFactorPendingSecret?: T;
+  twoFactorRecoveryCodes?: T;
+  twoFactorLastStep?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;

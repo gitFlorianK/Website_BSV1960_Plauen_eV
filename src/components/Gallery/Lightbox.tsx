@@ -11,6 +11,8 @@ export type LightboxImage = {
   height: number
   alt: string
   caption?: string | null
+  /** Interne Bilder direkt laden (nicht über den Bildoptimierer, der kein Login-Cookie hat). */
+  unoptimized?: boolean
 }
 
 /** Bildraster mit barrierearmer Lightbox (natives <dialog>: Fokusfalle, Esc, Fokus-Rückgabe). */
@@ -61,6 +63,7 @@ export const GalleryGrid: React.FC<{ images: LightboxImage[]; title: string }> =
                 src={img.thumb}
                 alt=""
                 fill
+                unoptimized={img.unoptimized}
                 sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
                 className="object-cover transition-transform duration-300 group-hover:scale-105"
               />
@@ -97,6 +100,7 @@ export const GalleryGrid: React.FC<{ images: LightboxImage[]; title: string }> =
                 key={current.id}
                 src={current.full}
                 alt={current.alt}
+                unoptimized={current.unoptimized}
                 width={current.width}
                 height={current.height}
                 sizes="100vw"

@@ -8,14 +8,22 @@ test.describe('Admin Panel', () => {
   test.beforeAll(async ({ browser }) => {
     await seedTestUser()
 
-    const context = await browser.newContext({ baseURL: 'http://127.0.0.1:3000' })
+    const context = await browser.newContext({
+      baseURL: 'http://127.0.0.1:3000',
+      extraHTTPHeaders: { 'x-real-ip': `203.0.113.${Math.floor(Math.random() * 250) + 1}` },
+    })
     page = await context.newPage()
 
-    await login({ page, user: testUser })
+    await login({ page, user: testUser, redirect: '/admin' })
   })
 
   test.afterAll(async () => {
     await cleanupTestUser()
+  })
+
+  test('Admin-Login leitet zur Website-Anmeldung um', async ({ page: anon }) => {
+    await anon.goto('/admin/login')
+    await expect(anon).toHaveURL(/\/login(\?|$)/)
   })
 
   test('can navigate to dashboard', async () => {

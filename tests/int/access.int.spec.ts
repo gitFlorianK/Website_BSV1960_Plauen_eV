@@ -90,14 +90,18 @@ async function expectDenied(op: Promise<unknown>) {
   await expect(op).rejects.toMatchObject({ status: expect.toBeOneOf([403, 404]) })
 }
 
+const TEST_PASSWORD = 'Sehne-Visier-Pfeil-2026'
+
 async function createUser(name: string, roles: User['roles'], extra: Partial<User> = {}) {
   const doc = await payload.create({
     collection: 'users',
     data: {
       name,
       email: `${name}@test.local`,
-      password: `Pw-${name}-2026-sicher!`,
+      password: TEST_PASSWORD,
       roles,
+      // admin/vorstand wirken nur mit aktiver Zwei-Faktor-Anmeldung (Local API ohne Nutzer darf das Feld setzen)
+      twoFactorEnabled: (roles ?? []).some((r) => r === 'admin' || r === 'vorstand') || name === 'admin',
       ...extra,
     },
   })
@@ -350,7 +354,7 @@ describe('Redakteur', () => {
       payload.create({ collection: 'events', overrideAccess: false, user: u.redakteur, data: { title: 'x', slug: 'x', eventType: 'other', visibility: 'public', startDate: new Date().toISOString() } }),
     )
     await expectDenied(
-      payload.create({ collection: 'users', overrideAccess: false, user: u.redakteur, data: { name: 'x', email: 'x@test.local', password: 'Pw-x-2026-sicher!', roles: ['mitglied'] } }),
+      payload.create({ collection: 'users', overrideAccess: false, user: u.redakteur, data: { name: 'x', email: 'x@test.local', password: TEST_PASSWORD, roles: ['mitglied'] } }),
     )
     await expectDenied(payload.find({ collection: 'course-registrations', overrideAccess: false, user: u.redakteur }))
   })
@@ -386,7 +390,7 @@ describe('Vorstand', () => {
       collection: 'users',
       overrideAccess: false,
       user: u.vorstand,
-      data: { name: 'neu', email: 'neu@test.local', password: 'Pw-neu-2026-sicher!', roles: ['admin'] },
+      data: { name: 'neu', email: 'neu@test.local', password: TEST_PASSWORD, roles: ['admin'] },
     })
     expect(created.roles).toEqual(['mitglied'])
   })

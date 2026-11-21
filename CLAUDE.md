@@ -26,6 +26,7 @@ pnpm test:int -t "Vorstand"                     # einzelne Testgruppe/Test nach 
 pnpm test:e2e             # Playwright (tests/e2e, nutzt laufenden Dev-Server; erwartet importierte Altinhalte)
 pnpm import:legacy:fetch  # Bilder der alten Website nach legacy-import/ (gitignored) laden
 pnpm import:legacy        # Altinhalte importieren (wiederholbar, upsert; gibt [PRÜFEN]-Liste aus)
+ADMIN_EMAIL=… ADMIN_NAME="…" pnpm user:create-admin   # erstes Admin-Konto + Einladungslink (ohne SMTP nur ausgegeben)
 pnpm generate:types       # nach Schemaänderungen: src/payload-types.ts neu erzeugen
 pnpm generate:importmap   # nach Hinzufügen eigener Admin-Komponenten
 pnpm payload migrate:create <name>   # Migration aus Schemaänderung erzeugen (nach jeder Schemaänderung!)
@@ -52,6 +53,9 @@ Mailpit-Web-UI (alle lokal versendeten Mails): http://localhost:8025
 - **Rollen & Zugriff** (`src/access/`): Rollen `admin | vorstand | trainer | redakteur | mitglied` im hasMany-Feld `users.roles`; `admin` erfüllt jede Rollenprüfung, gesperrte Konten (`accountDisabled`) haben keinerlei Rechte. Jede Collection setzt `create/read/update/delete` explizit mit diesen Helfern (`hasRole(...)`, `isStaff`, `isLoggedIn`, `publicOrMembers`, `publishedPublicOrMembers`, `nobody`) – Payload-Default wäre „jeder Eingeloggte“, also auch Mitglieder. Das gilt auch für Plugin-Collections (Overrides in `src/plugins/index.ts`).
 - **Sichtbarkeit**: Inhalte mit `visibilityField` (`public | members`) werden über die Access-Funktion als Query gefiltert. **Die Local API umgeht Access Control standardmäßig** – im Frontend jede Abfrage mit `overrideAccess: false` (und ggf. `user`) ausführen.
 - **Uploads** (`media`, `documents`) liegen unter `uploads/` außerhalb von `public/` und werden nur über `/api/<collection>/file/…` mit Access-Prüfung ausgeliefert. Payload prüft Dateityp per Magic Bytes und PDF-Struktur; kein SVG.
+- **Anmeldung & Mitgliederbereich** (`src/lib/auth/`): Login, Passwort-Reset und Einladung laufen ausschließlich über Server Actions mit der Local API (`service.ts`, `actions.ts`); die REST-Endpunkte dafür sperrt `beforeOperation` in `src/collections/Users`, `/admin/login` & Co. leiten per `redirects.ts` auf `/login` um. 2FA (TOTP, `totp.ts`/`twoFactor.ts`) prüft der `beforeLogin`-Hook; `admin`/`vorstand` wirken erst mit aktiver 2FA (`effectiveRoles`). Das JWT holt der `afterLogin`-Hook über `context` (wegen `removeTokenFromResponses`). Geheimnisse liegen in versteckten Feldern und werden nur über `payload.db` geschrieben. Payload verwirft beim Passwortwechsel selbst alle Sessions. `/mitglieder/*` ist dynamisch; **jede Seite ruft `requireMember(<eigener Pfad>)`** – das Layout schützt nicht.
+- `payload.db.updateOne` mit Array-Feldern (z. B. `sessions`) **plus** normalen Spalten scheitert (Drizzle macht daraus ein INSERT … ON CONFLICT gegen NOT-NULL-Spalten) – getrennt schreiben.
+- Pflicht-Relationen haben in der DB `ON DELETE SET NULL`: abhängige Datensätze über `src/hooks/dependents.ts` mitlöschen oder das Löschen verhindern.
 - Kontaktanfragen, Mitgliedsanträge und Kursanmeldungen haben `create: nobody` (auch für Admin) – sie werden ausschließlich in `src/lib/forms/` nach Validierung mit `overrideAccess: true` angelegt.
 - Slugs immer über `@/fields/slug` (deutsche Umlaute → ae/oe/ue/ss), nicht direkt `slugField` aus `payload`.
 - `src/plugins/index.ts` – SEO, Redirects, Nested Docs, Search. (Der Form-Builder des Templates wurde bewusst entfernt.)
@@ -66,4 +70,5 @@ Mailpit-Web-UI (alle lokal versendeten Mails): http://localhost:8025
 - Design: Vereinsfarben als Tailwind-Tokens (`brand`, `brand-text` für Orange als Text, `navy`, `ink`) in `globals.css`; Orange (`brand`) nie als Textfarbe auf Weiß (Kontrast). Nur helles Theme. Ansprache auf der Website: „du“.
 - Neue/geänderte Zugriffsregeln immer in `tests/int/access.int.spec.ts` abdecken (Rolle × Operation, positiv und negativ).
 - Tests, die Mails auslösen, fangen `payload.sendEmail` per `vi.spyOn` ab (siehe `tests/int/forms.int.spec.ts`); E2E-Tests setzen je Lauf eine eigene `x-real-ip`, damit Rate-Limits nicht greifen, und lesen Mails über die Mailpit-API.
+- E2E-Tests laden die Payload-Config nicht selbst (Playwright lädt sie als natives ESM, `next/cache` ist dort nicht auflösbar); Testdaten über `seed()` in `tests/helpers/seedUser.ts` (→ `payload run tests/helpers/seed-cli.ts`). Logins im E2E über `/login`, für Admins mit TOTP aus dem Seed-Geheimnis. Lokal akzeptiert `csrf` `localhost` und `127.0.0.1`.
 - Vitest läuft in der `node`-Umgebung (nicht jsdom: Payload-Uploads scheitern sonst an Buffer-Realms); `next/cache` ist in `vitest.setup.ts` gemockt.

@@ -67,7 +67,7 @@ Es gibt eine Auth-Collection `users` mit dem Feld `roles` (Mehrfachauswahl).
 
 | Collection | Zweck / wichtige Felder |
 |---|---|
-| `users` | Auth, Rollen, Name, Profil, `totpSecret` (verschlüsselt), `inviteToken` |
+| `users` | Auth, Rollen, Name, Telefon, Sperre, eingeladen am / letzte Anmeldung, 2FA (Geheimnis AES-256-GCM-verschlüsselt, Wiederherstellungscodes als Hash). Einladung nutzt das Reset-Token von Payload (72 h) |
 | `pages` | Startseite, Verein/Vorstand, Links, Sponsoren-Intro usw. Block-Layout (Hero, Text, Bild, Karten, FAQ, Linkliste, CTA) |
 | `posts` | News und Ergebnisse: Datum, Kategorie (Verein / Ergebnisse / Turnier), Saison, Titelbild, Lexical-Richtext, `visibility`, Bezug zur Galerie |
 | `seasons` | z. B. „Halle 2025/26“, „Freiluft 2026“, mit Typ und Zeitraum. Ergibt das Ergebnisarchiv nach Saison |
@@ -104,7 +104,7 @@ Es gibt eine Auth-Collection `users` mit dem Feld `roles` (Mehrfachauswahl).
 | `/sponsoren`, `/links` | Sponsorenliste mit Logos, Verbände und Vereine |
 | `/kontakt` | Kontaktformular, Adresse |
 | `/impressum`, `/datenschutz` | aktualisierte Rechtstexte (DDG/TDDDG) |
-| `/login`, `/passwort-vergessen`, `/einladung/[token]` | Auth-Flows im Frontend |
+| `/login`, `/passwort-vergessen`, `/passwort-zuruecksetzen?token=…`, `/einladung?token=…` | Auth-Flows im Frontend (die Auth-Ansichten von `/admin` leiten hierher um) |
 | `/mitglieder/*` | Dashboard, interne News, Dokumente, Turnieranmeldung, Profil, Passwort, 2FA |
 | `/admin` | Payload-Admin (nur Staff-Rollen) |
 
@@ -129,10 +129,12 @@ Es gibt eine Auth-Collection `users` mit dem Feld `roles` (Mehrfachauswahl).
 **Authentifizierung**
 - Payload-Auth mit Cookies `HttpOnly`, `Secure`, `SameSite=Lax`.
 - `csrf`-Whitelist auf die eigene Domain beschränkt.
-- `maxLoginAttempts: 5`, `lockTime: 15 min`. Kurze Token-Laufzeit für Staff (2 h), länger für Mitglieder.
-- Passwortrichtlinie: mindestens 12 Zeichen, Stärkeprüfung mit `@zxcvbn-ts` (offline, keine externen Aufrufe).
-- **2FA (TOTP) ist Pflicht** für `admin` und `vorstand`, optional für alle anderen. Plugin `payload-totp` beim Setup prüfen. Falls es nicht passt: eigene Umsetzung mit `otplib` und einem Login-Hook.
-- Passwort-Reset und Einladungen über Einmal-Tokens mit Ablaufzeit. Die Antwort ist immer neutral, damit niemand herausfinden kann, ob ein Konto existiert.
+- `maxLoginAttempts: 5`, `lockTime: 15 min`, Sessions in der DB (sofort widerrufbar). Token-Laufzeit einheitlich 2 h.
+- **Anmeldung nur über die Website** (Server Actions, Local API): Die REST-Endpunkte `login`, `forgot-password`, `reset-password` und `first-register` sind gesperrt. Zusätzliche Rate-Limits je IP und Konto.
+- Passwortrichtlinie (umgesetzt, NIST SP 800-63B): 12–128 Zeichen, Sperrliste inkl. Vereinsbegriffe, keine Namens-/E-Mail-Bestandteile, keine Zeichenklassen-Pflicht. Statt `@zxcvbn-ts` eine eigene schlanke Prüfung.
+- **2FA (TOTP) ist Pflicht** für `admin` und `vorstand`, optional für alle anderen. Umgesetzt ohne Plugin: TOTP nach RFC 6238 (±1 Zeitschritt, Replay-Schutz), 8 Wiederherstellungscodes, Prüfung im `beforeLogin`-Hook, max. 5 Fehlversuche je 15 min. Die Rollen `admin`/`vorstand` wirken erst mit eingerichteter 2FA. Der Vorstand kann die 2FA eines Kontos zurücksetzen (meldet alle Geräte ab).
+- Passwort-Reset (1 h) und Einladungen (72 h) über Einmal-Tokens. „Passwort vergessen“ mit ALTCHA, Antwort immer neutral. Nach Reset, Passwortwechsel und 2FA-Einrichtung werden andere Sessions beendet.
+- Das erste Administratorkonto entsteht über `pnpm user:create-admin` (die Erstregistrierung im Admin-Panel ist gesperrt).
 
 **Autorisierung**
 - Deny by default.
@@ -243,17 +245,21 @@ bsv1960-website/
    - VPS einrichten (Skript in `ops/`), Caddy, Backups, Monitoring
    - Staging-Subdomain zur Abnahme, danach DNS-Umstellung der Domain
 
-**Stand:** Phasen 1–4 umgesetzt; Altinhalte (Teil von Phase 7) bereits in Phase 3 importiert.
+**Stand:** Phasen 1–5 umgesetzt; Altinhalte (Teil von Phase 7) bereits in Phase 3 importiert.
 
 **Aus früheren Phasen übernommene Pflichten:**
-- Phase 5: interne Bilder (Galerien) für eingeloggte Mitglieder ausliefern (nicht über `next/image`).
 - Phase 6:
+  - Interne Bilder/Dokumente mit `Cache-Control: private` ausliefern (werden jetzt ohne Bildoptimierer direkt über `/api/media/file/…` geladen).
+  - Audit-Log: Anmeldungen, Fehlversuche, 2FA-Zurücksetzen, Rollenänderungen (bisher nur `lastLoginAt` und Server-Log).
+  - CSP: Der QR-Code der 2FA-Einrichtung ist inline-SVG (kein `img-src data:` nötig).
   - Lösch-Jobs: unbestätigte Kursanmeldungen nach 48 h. Die Bestätigungsmail sagt das bereits zu!
   - Lösch-Jobs: Kontaktanfragen nach 6 Monaten, abgelehnte Anträge nach 3 Monaten, Kursanmeldungen 12 Monate nach Kursende.
   - CSP: Das ALTCHA-Widget braucht Web Worker (`worker-src blob:`) und eingebettete Styles. Für eine strikte CSP auf `altcha/external` mit eigener CSS-Datei umstellen.
 - Phase 8:
   - Caddy muss `X-Real-IP` auf die echte Client-IP setzen und einen vom Client gesendeten Header überschreiben (Grundlage der Rate-Limits).
   - `TZ=Europe/Berlin` setzen.
+  - `NEXT_PUBLIC_SERVER_URL` muss exakt der öffentlichen Origin entsprechen: Daraus entsteht die CSRF-Liste, ohne Treffer gelten Server Actions als nicht angemeldet.
+  - Erstes Konto mit `pnpm user:create-admin` anlegen, danach 2FA einrichten.
   - SMTP mit STARTTLS/TLS (wird außer für lokale Hosts erzwungen).
 
 ## 9. Offene Punkte (vom Verein zu klären)

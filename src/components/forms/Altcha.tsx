@@ -9,12 +9,14 @@ type Props = {
   /** Ändert sich nach jeder Server-Antwort → Widget zurücksetzen (Lösungen sind nur einmal gültig). */
   resetKey: number
   error?: string
+  /** Standard: erst beim Fokus ins Formular rechnen. `onload` für Formulare mit autoFocus (Fokus liegt sonst schon vorher). */
+  auto?: 'onfocus' | 'onload'
 }
 
 const CONFIG = JSON.stringify({ hideFooter: true, hideLogo: true })
 
 /** ALTCHA-Widget: Proof-of-Work im Browser, selbst gehostet, keine Cookies, keine Drittanbieter. */
-export function Altcha({ resetKey, error }: Props) {
+export function Altcha({ resetKey, error, auto = 'onfocus' }: Props) {
   const ref = useRef<HTMLElement & { reset?: () => void }>(null)
 
   useEffect(() => {
@@ -33,7 +35,7 @@ export function Altcha({ resetKey, error }: Props) {
         challenge={routes.altchaChallenge}
         name="altcha"
         language="de"
-        auto="onfocus"
+        auto={auto}
         configuration={CONFIG}
         aria-describedby={error ? 'f-altcha-error' : undefined}
         style={{ '--altcha-max-width': '100%' } as React.CSSProperties}

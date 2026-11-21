@@ -2,13 +2,13 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import React, { useId, useState } from 'react'
-import { MenuIcon, XIcon } from 'lucide-react'
+import { MenuIcon, UserRoundIcon, XIcon } from 'lucide-react'
 
 import type { Header } from '@/payload-types'
 
 import { Logo } from '@/components/Logo'
 import { cn } from '@/utilities/ui'
-import { docPath } from '@/utilities/routes'
+import { docPath, routes } from '@/utilities/routes'
 
 type NavLink = { href: string; label: string; newTab: boolean }
 
@@ -54,6 +54,8 @@ export const HeaderClient: React.FC<{ data: Header }> = ({ data }) => {
           </ul>
         </nav>
 
+        <MembersLink active={isActive(pathname, routes.members)} className="hidden lg:inline-flex" />
+
         {/* key: Menü schließt sich bei Seitenwechsel automatisch */}
         <MobileMenu key={pathname} links={links} pathname={pathname} />
       </div>
@@ -79,6 +81,25 @@ const NavItem: React.FC<{ link: NavLink; active: boolean; mobile?: boolean }> = 
     )}
   >
     {link.label}
+  </Link>
+)
+
+/**
+ * Statischer Link (kein Login-Status im Header: öffentliche Seiten sind ISR und lesen keine Cookies).
+ * /mitglieder leitet Nicht-Angemeldete zur Anmeldung weiter.
+ */
+const MembersLink: React.FC<{ active: boolean; className?: string }> = ({ active, className }) => (
+  <Link
+    href={routes.members}
+    aria-current={active ? 'page' : undefined}
+    className={cn(
+      'items-center gap-2 rounded-md border-2 border-navy px-3 py-1.5 font-semibold text-navy transition-colors hover:bg-navy hover:text-white',
+      active && 'bg-navy text-white',
+      className,
+    )}
+  >
+    <UserRoundIcon aria-hidden className="size-4" />
+    Mitgliederbereich
   </Link>
 )
 
@@ -110,6 +131,9 @@ const MobileMenu: React.FC<{ links: NavLink[]; pathname: string }> = ({ links, p
               <NavItem link={l} active={isActive(pathname, l.href)} mobile />
             </li>
           ))}
+          <li className="mt-2 border-t border-border pt-3">
+            <MembersLink active={isActive(pathname, routes.members)} className="flex px-4 py-3 text-lg" />
+          </li>
         </ul>
       </nav>
     </div>

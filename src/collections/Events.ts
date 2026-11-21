@@ -3,6 +3,7 @@ import { slugField } from '@/fields/slug'
 
 import { hasRole, publicOrMembers } from '@/access'
 import { visibilityField } from '@/fields/visibility'
+import { deleteDependents } from '@/hooks/dependents'
 import { revalidateSiteAfterChange, revalidateSiteAfterDelete } from '@/hooks/revalidate'
 
 /** Turniere, Vereinsveranstaltungen und Sondertermine. */
@@ -23,6 +24,7 @@ export const Events: CollectionConfig<'events'> = {
   defaultSort: 'startDate',
   hooks: {
     afterChange: [revalidateSiteAfterChange],
+    beforeDelete: [deleteDependents('event-registrations', 'event')],
     afterDelete: [revalidateSiteAfterDelete],
   },
   fields: [

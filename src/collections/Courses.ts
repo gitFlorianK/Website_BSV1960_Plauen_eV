@@ -2,6 +2,7 @@ import type { Access, CollectionConfig, Where } from 'payload'
 
 import { hasRole, isStaffUser } from '@/access'
 import type { User } from '@/payload-types'
+import { preventDeleteWhileUsed } from '@/hooks/dependents'
 import { revalidateSiteAfterChange, revalidateSiteAfterDelete } from '@/hooks/revalidate'
 
 /** Anonyme sehen keine Kurse im Entwurf. */
@@ -25,6 +26,14 @@ export const Courses: CollectionConfig<'courses'> = {
   },
   hooks: {
     afterChange: [revalidateSiteAfterChange],
+    // Anmeldungen unterliegen eigenen Aufbewahrungsfristen – nicht stillschweigend mitlöschen
+    beforeDelete: [
+      preventDeleteWhileUsed(
+        'course-registrations',
+        'course',
+        (n) => `Der Kurs hat noch ${n} Anmeldung(en). Bitte zuerst die Anmeldungen löschen oder den Kurs auf „Geschlossen“ setzen.`,
+      ),
+    ],
     afterDelete: [revalidateSiteAfterDelete],
   },
   fields: [

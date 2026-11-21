@@ -1,46 +1,32 @@
-import { getPayload } from 'payload'
-import config from '../../src/payload.config.js'
+import { execFileSync } from 'node:child_process'
 
+import { generateTotpSecret } from '../../src/lib/auth/totp'
+
+type Role = 'admin' | 'vorstand' | 'trainer' | 'redakteur' | 'mitglied'
+
+/** Führt einen Seed-Auftrag über `payload run` aus (siehe seed-cli.ts). */
+export function seed<T = unknown>(task: Record<string, unknown>): T {
+  const out = execFileSync('pnpm', ['--silent', 'payload', 'run', 'tests/helpers/seed-cli.ts'], {
+    env: { ...process.env, E2E_SEED: JSON.stringify(task), NODE_OPTIONS: '--no-deprecation' },
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'inherit'],
+  })
+  const line = out.trim().split('\n').reverse().find((l) => l.startsWith('{"result"'))
+  if (!line) throw new Error(`Seed fehlgeschlagen: ${out}`)
+  return JSON.parse(line).result as T
+}
+
+/** Admin für E2E-Tests – mit eingerichteter Zwei-Faktor-Anmeldung (sonst wirkt die Rolle nicht). */
 export const testUser = {
-  email: 'dev@payloadcms.com',
-  password: 'e2e-Test-Passwort-2026!',
+  email: 'e2e-admin@test.local',
+  password: 'Zielscheibe-Sehne-2026!',
+  totpSecret: generateTotpSecret(),
 }
 
-/**
- * Seeds a test user for e2e admin tests.
- */
-export async function seedTestUser(): Promise<void> {
-  const payload = await getPayload({ config })
+export const seedUser = (data: { email: string; password: string; name: string; roles: Role[]; totpSecret?: string; invite?: boolean }) =>
+  seed<{ id: number }>({ action: 'user', ...data })
 
-  // Delete existing test user if any
-  await payload.delete({
-    collection: 'users',
-    where: {
-      email: {
-        equals: testUser.email,
-      },
-    },
-  })
+export const deleteUser = (email: string) => seed({ action: 'deleteUser', email })
 
-  // Create fresh test user
-  await payload.create({
-    collection: 'users',
-    data: { ...testUser, name: 'E2E Admin', roles: ['admin'] },
-  })
-}
-
-/**
- * Cleans up test user after tests
- */
-export async function cleanupTestUser(): Promise<void> {
-  const payload = await getPayload({ config })
-
-  await payload.delete({
-    collection: 'users',
-    where: {
-      email: {
-        equals: testUser.email,
-      },
-    },
-  })
-}
+export const seedTestUser = async () => seedUser({ ...testUser, name: 'Erika Verwaltung', roles: ['admin'] })
+export const cleanupTestUser = async () => deleteUser(testUser.email)

@@ -1,4 +1,4 @@
-import type { Access, CollectionConfig, Where } from 'payload'
+import type { Access, CollectionConfig, PayloadRequest, Where } from 'payload'
 import { ValidationError } from 'payload'
 
 import { hasRole, isLoggedIn, userHasRole } from '@/access'
@@ -13,6 +13,33 @@ const ownOrStaff: Access = ({ req: { user } }) => {
   if (userHasRole(u, 'vorstand', 'trainer')) return true
   if (u && !u.accountDisabled) return { member: { equals: u.id } } as Where
   return false
+}
+
+/** Anmeldung freigegeben, Meldeschluss nicht vorbei und noch Plätze frei? Sonst ValidationError. */
+async function assertRegistrationOpen(req: PayloadRequest, eventId: number, excludeId?: number) {
+  const event = await req.payload.findByID({ collection: 'events', id: eventId, depth: 0, disableErrors: true, req })
+  const reg = event?.registration
+  if (!event || !reg?.enabled || (reg.deadline && new Date(reg.deadline) < new Date())) {
+    throw new ValidationError({
+      errors: [{ path: 'event', message: 'Für diesen Termin ist keine Anmeldung (mehr) möglich.' }],
+    })
+  }
+  if (reg.maxParticipants) {
+    const { totalDocs: taken } = await req.payload.count({
+      collection: 'event-registrations',
+      where: {
+        and: [
+          { event: { equals: event.id } },
+          { status: { not_equals: 'cancelled' } },
+          ...(excludeId ? [{ id: { not_equals: excludeId } }] : []),
+        ],
+      },
+      req,
+    })
+    if (taken >= reg.maxParticipants) {
+      throw new ValidationError({ errors: [{ path: 'event', message: 'Alle Plätze für diesen Termin sind vergeben.' }] })
+    }
+  }
 }
 
 /** Turnier-/Terminanmeldungen von Mitgliedern. */
@@ -81,54 +108,35 @@ export const EventRegistrations: CollectionConfig<'event-registrations'> = {
       },
     ],
     beforeChange: [
-      async ({ data, operation, req }) => {
-        if (operation !== 'create') return data
+      async ({ data, operation, req, originalDoc }) => {
+        const staff = userHasRole(asUser(req.user), 'vorstand', 'trainer')
+        // Skripte/Server-Code ohne Nutzer (Local API) und Staff unterliegen keinen Mitgliedsregeln
+        const memberRules = Boolean(req.user) && !staff
 
-        // Mitglieder dürfen sich nur für freigegebene Termine vor Meldeschluss anmelden.
-        if (!userHasRole(asUser(req.user), 'vorstand', 'trainer')) {
-          const event = await req.payload.findByID({
-            collection: 'events',
-            id: relId(data.event) as number,
-            depth: 0,
-            disableErrors: true,
-            req,
-          })
-          const reg = event?.registration
-          const closed =
-            !event ||
-            !reg?.enabled ||
-            (reg.deadline && new Date(reg.deadline) < new Date())
-          if (closed) {
-            throw new ValidationError({
-              errors: [{ path: 'event', message: 'Für diesen Termin ist keine Anmeldung möglich.' }],
-            })
-          }
-          if (reg?.maxParticipants) {
-            const { totalDocs: taken } = await req.payload.count({
-              collection: 'event-registrations',
-              where: {
-                and: [
-                  { event: { equals: event.id } },
-                  { status: { not_equals: 'cancelled' } },
-                ],
-              },
-              req,
-            })
-            if (taken >= reg.maxParticipants) {
-              throw new ValidationError({
-                errors: [{ path: 'event', message: 'Alle Plätze für diesen Termin sind vergeben.' }],
-              })
+        if (operation === 'update') {
+          const from = originalDoc?.status
+          const to = data.status ?? from
+          if (memberRules && to !== from) {
+            // Mitglieder: abmelden jederzeit, erneut anmelden nur bei offener Anmeldung
+            if (to === 'cancelled') return data
+            if (from === 'cancelled' && to === 'registered') {
+              await assertRegistrationOpen(req, relId(originalDoc?.event) as number, originalDoc?.id)
+              return data
             }
+            throw new ValidationError({
+              errors: [{ path: 'status', message: 'Den Status kann nur der Vorstand oder ein Trainer ändern.' }],
+            })
           }
+          return data
         }
+
+        if (operation !== 'create') return data
+        if (memberRules) await assertRegistrationOpen(req, relId(data.event) as number)
 
         const { totalDocs } = await req.payload.count({
           collection: 'event-registrations',
           where: {
-            and: [
-              { event: { equals: relId(data.event) } },
-              { member: { equals: relId(data.member) } },
-            ],
+            and: [{ event: { equals: relId(data.event) } }, { member: { equals: relId(data.member) } }],
           },
           req,
         })

@@ -19,18 +19,23 @@ type Common = {
   hint?: React.ReactNode
   required?: boolean
   className?: string
+  /** Eindeutiger Präfix, wenn dasselbe Formular mehrfach auf einer Seite steht. */
+  idPrefix?: string
 }
 
-const ids = (name: string) => ({ id: `f-${name}`, errorId: `f-${name}-error`, hintId: `f-${name}-hint` })
+const ids = (name: string, prefix?: string) => {
+  const base = prefix ? `f-${prefix}-${name}` : `f-${name}`
+  return { id: base, errorId: `${base}-error`, hintId: `${base}-hint` }
+}
 
-function describedBy(name: string, error?: string, hint?: React.ReactNode) {
-  const { errorId, hintId } = ids(name)
+function describedBy(name: string, error?: string, hint?: React.ReactNode, prefix?: string) {
+  const { errorId, hintId } = ids(name, prefix)
   return [hint ? hintId : null, error ? errorId : null].filter(Boolean).join(' ') || undefined
 }
 
-function Label({ name, label, required }: Pick<Common, 'name' | 'label' | 'required'>) {
+function Label({ name, label, required, idPrefix }: Pick<Common, 'name' | 'label' | 'required' | 'idPrefix'>) {
   return (
-    <label htmlFor={ids(name).id} className="mb-1.5 block font-medium">
+    <label htmlFor={ids(name, idPrefix).id} className="mb-1.5 block font-medium">
       {label}
       {required ? (
         <span className="ml-0.5 text-destructive" aria-hidden>
@@ -43,8 +48,8 @@ function Label({ name, label, required }: Pick<Common, 'name' | 'label' | 'requi
   )
 }
 
-function Messages({ name, error, hint }: Pick<Common, 'name' | 'error' | 'hint'>) {
-  const { errorId, hintId } = ids(name)
+function Messages({ name, error, hint, idPrefix }: Pick<Common, 'name' | 'error' | 'hint' | 'idPrefix'>) {
+  const { errorId, hintId } = ids(name, idPrefix)
   return (
     <>
       {hint && (
@@ -68,21 +73,22 @@ export function TextField({
   hint,
   required,
   className,
+  idPrefix,
   ...rest
 }: Common & Omit<React.ComponentProps<'input'>, 'name'>) {
   return (
     <div className={className}>
-      <Label name={name} label={label} required={required} />
+      <Label name={name} label={label} required={required} idPrefix={idPrefix} />
       <input
-        id={ids(name).id}
+        id={ids(name, idPrefix).id}
         name={name}
         required={required}
         aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy(name, error, hint)}
+        aria-describedby={describedBy(name, error, hint, idPrefix)}
         className={inputClass}
         {...rest}
       />
-      <Messages name={name} error={error} hint={hint} />
+      <Messages name={name} error={error} hint={hint} idPrefix={idPrefix} />
     </div>
   )
 }
@@ -94,22 +100,23 @@ export function TextArea({
   hint,
   required,
   className,
+  idPrefix,
   ...rest
 }: Common & Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'name'>) {
   return (
     <div className={className}>
-      <Label name={name} label={label} required={required} />
+      <Label name={name} label={label} required={required} idPrefix={idPrefix} />
       <textarea
-        id={ids(name).id}
+        id={ids(name, idPrefix).id}
         name={name}
         required={required}
         rows={6}
         aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy(name, error, hint)}
+        aria-describedby={describedBy(name, error, hint, idPrefix)}
         className={inputClass}
         {...rest}
       />
-      <Messages name={name} error={error} hint={hint} />
+      <Messages name={name} error={error} hint={hint} idPrefix={idPrefix} />
     </div>
   )
 }
@@ -123,6 +130,7 @@ export function SelectField({
   className,
   options,
   placeholder,
+  idPrefix,
   ...rest
 }: Common &
   Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'name'> & {
@@ -131,13 +139,13 @@ export function SelectField({
   }) {
   return (
     <div className={className}>
-      <Label name={name} label={label} required={required} />
+      <Label name={name} label={label} required={required} idPrefix={idPrefix} />
       <select
-        id={ids(name).id}
+        id={ids(name, idPrefix).id}
         name={name}
         required={required}
         aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy(name, error, hint)}
+        aria-describedby={describedBy(name, error, hint, idPrefix)}
         className={cn(inputClass, 'h-[2.875rem]')}
         {...rest}
       >
@@ -148,7 +156,7 @@ export function SelectField({
           </option>
         ))}
       </select>
-      <Messages name={name} error={error} hint={hint} />
+      <Messages name={name} error={error} hint={hint} idPrefix={idPrefix} />
     </div>
   )
 }
@@ -160,9 +168,10 @@ export function CheckboxField({
   hint,
   required,
   className,
+  idPrefix,
   ...rest
 }: Common & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'name' | 'type'>) {
-  const { id } = ids(name)
+  const { id } = ids(name, idPrefix)
   return (
     <div className={className}>
       <div className="flex items-start gap-3">
@@ -172,7 +181,7 @@ export function CheckboxField({
           type="checkbox"
           required={required}
           aria-invalid={error ? true : undefined}
-          aria-describedby={describedBy(name, error, hint)}
+          aria-describedby={describedBy(name, error, hint, idPrefix)}
           className="mt-0.5 size-5 shrink-0 accent-[var(--navy)]"
           {...rest}
         />
@@ -186,7 +195,7 @@ export function CheckboxField({
         </label>
       </div>
       <div className="pl-8">
-        <Messages name={name} error={error} hint={hint} />
+        <Messages name={name} error={error} hint={hint} idPrefix={idPrefix} />
       </div>
     </div>
   )

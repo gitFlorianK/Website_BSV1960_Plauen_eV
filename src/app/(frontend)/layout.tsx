@@ -18,7 +18,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const { isEnabled } = await draftMode()
 
   return (
-    <html className={cn(GeistSans.variable, GeistMono.variable)} lang="de">
+    <html data-scroll-behavior="smooth" className={cn(GeistSans.variable, GeistMono.variable)} lang="de">
       <body>
         <AdminBar adminBarProps={{ preview: isEnabled }} />
         <Header />

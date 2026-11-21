@@ -1,0 +1,75 @@
+/**
+ * Testdaten für Playwright. Läuft über `payload run` (tsx), weil die Payload-Config im
+ * Playwright-Prozess (natives ESM) nicht lädt. Auftrag als JSON in E2E_SEED, Ergebnis als
+ * JSON in der letzten Ausgabezeile.
+ */
+import { getPayload } from 'payload'
+import config from '@payload-config'
+
+import { encryptSecret } from '@/lib/auth/crypto'
+
+type Role = 'admin' | 'vorstand' | 'trainer' | 'redakteur' | 'mitglied'
+type Task =
+  | { action: 'user'; email: string; password: string; name: string; roles: Role[]; totpSecret?: string; invite?: boolean }
+  | { action: 'deleteUser'; email: string }
+  | { action: 'event'; title: string; slug: string; startDate: string; deadline?: string; visibility: 'public' | 'members' }
+  | { action: 'deleteEvent'; slug: string }
+  | { action: 'cleanup'; eventSlugPrefix: string; emailPrefix: string }
+
+const task = JSON.parse(process.env.E2E_SEED ?? '{}') as Task
+const payload = await getPayload({ config })
+const context = { disableRevalidate: true }
+let result: unknown = null
+
+switch (task.action) {
+  case 'user': {
+    await payload.delete({ collection: 'users', where: { email: { equals: task.email } } })
+    const user = await payload.create({
+      collection: 'users',
+      data: { email: task.email, password: task.password, name: task.name, roles: task.roles, sendInvite: Boolean(task.invite) },
+    })
+    if (task.totpSecret) {
+      await payload.db.updateOne({
+        collection: 'users',
+        id: user.id,
+        data: { twoFactorEnabled: true, twoFactorSecret: encryptSecret(task.totpSecret), twoFactorRecoveryCodes: [] },
+        returning: false,
+      })
+    }
+    result = { id: user.id }
+    break
+  }
+  case 'deleteUser':
+    await payload.delete({ collection: 'users', where: { email: { equals: task.email } } })
+    break
+  case 'event': {
+    await payload.delete({ collection: 'events', where: { slug: { equals: task.slug } }, context })
+    const ev = await payload.create({
+      collection: 'events',
+      data: {
+        title: task.title,
+        slug: task.slug,
+        startDate: task.startDate,
+        eventType: 'tournament',
+        visibility: task.visibility,
+        registration: { enabled: true, deadline: task.deadline },
+      },
+      context,
+    })
+    result = { id: ev.id }
+    break
+  }
+  case 'deleteEvent':
+    await payload.delete({ collection: 'events', where: { slug: { equals: task.slug } }, context })
+    break
+  case 'cleanup':
+    // Reste abgebrochener Läufe
+    await payload.delete({ collection: 'events', where: { slug: { like: task.eventSlugPrefix } }, context })
+    await payload.delete({ collection: 'users', where: { email: { like: task.emailPrefix } } })
+    break
+  default:
+    throw new Error(`Unbekannter Auftrag: ${JSON.stringify(task)}`)
+}
+
+console.log(JSON.stringify({ result }))
+process.exit(0)

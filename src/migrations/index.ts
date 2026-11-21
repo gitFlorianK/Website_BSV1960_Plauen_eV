@@ -1,6 +1,7 @@
 import * as migration_20261120_185240_initial from './20261120_185240_initial';
 import * as migration_20261120_193955_phase3_frontend from './20261120_193955_phase3_frontend';
 import * as migration_20261120_201032_phase4_forms from './20261120_201032_phase4_forms';
+import * as migration_20261121_041514_phase5_members from './20261121_041514_phase5_members';
 
 export const migrations = [
   {
@@ -16,6 +17,11 @@ export const migrations = [
   {
     up: migration_20261120_201032_phase4_forms.up,
     down: migration_20261120_201032_phase4_forms.down,
-    name: '20261120_201032_phase4_forms'
+    name: '20261120_201032_phase4_forms',
+  },
+  {
+    up: migration_20261121_041514_phase5_members.up,
+    down: migration_20261121_041514_phase5_members.down,
+    name: '20261121_041514_phase5_members'
   },
 ];

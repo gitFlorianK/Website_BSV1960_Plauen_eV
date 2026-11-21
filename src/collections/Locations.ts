@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
 import { anyone, hasRole } from '@/access'
+import { preventDeleteWhileUsed } from '@/hooks/dependents'
 import { revalidateSiteAfterChange, revalidateSiteAfterDelete } from '@/hooks/revalidate'
 
 /** Trainings- und Veranstaltungsorte. */
@@ -20,6 +21,9 @@ export const Locations: CollectionConfig<'locations'> = {
   },
   hooks: {
     afterChange: [revalidateSiteAfterChange],
+    beforeDelete: [
+      preventDeleteWhileUsed('training-slots', 'location', (n) => `Der Ort wird noch von ${n} Trainingszeit(en) verwendet.`),
+    ],
     afterDelete: [revalidateSiteAfterDelete],
   },
   fields: [

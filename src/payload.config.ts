@@ -38,6 +38,14 @@ const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
 const serverURL = getServerSideURL()
+/**
+ * Erlaubte Origins für Cookie-Anfragen (CSRF-Schutz; auch Server Actions prüfen darüber den Login).
+ * Lokal zusätzlich beide Loopback-Schreibweisen – Browser/Tests nutzen teils 127.0.0.1.
+ */
+const trustedOrigins =
+  process.env.NODE_ENV === 'production'
+    ? [serverURL]
+    : [...new Set([serverURL, 'http://localhost:3000', 'http://127.0.0.1:3000'])]
 
 /** Konstantzeit-Vergleich für den Cron-Bearer-Token. */
 const safeEqual = (a: string, b: string) => {
@@ -126,9 +134,9 @@ export default buildConfig({
         },
       })
     : undefined,
-  cors: [serverURL],
+  cors: trustedOrigins,
   // Cookie-basierte Requests werden nur von der eigenen Origin akzeptiert.
-  csrf: [serverURL],
+  csrf: trustedOrigins,
   // Das Frontend nutzt die Local API, der Admin REST – GraphQL wird nicht gebraucht.
   graphQL: { disable: true },
   upload: {

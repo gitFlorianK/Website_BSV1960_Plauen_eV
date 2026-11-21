@@ -1,31 +1,31 @@
 import type { Page } from '@playwright/test'
 import { expect } from '@playwright/test'
 
+import { totp } from '../../src/lib/auth/totp'
+
 export interface LoginOptions {
   page: Page
-  serverURL?: string
-  user: {
-    email: string
-    password: string
-  }
+  user: { email: string; password: string; totpSecret?: string }
+  /** Ziel nach der Anmeldung (Standard: Mitgliederbereich). */
+  redirect?: string
 }
 
 /**
- * Logs the user into the admin panel via the login page.
+ * Anmeldung über /login (das Admin-Panel leitet dorthin um), bei Bedarf mit TOTP-Code.
+ * Der Code stammt aus dem nächsten Zeitschritt, damit ein eben verwendeter nicht kollidiert.
  */
-export async function login({
-  page,
-  serverURL = 'http://127.0.0.1:3000',
-  user,
-}: LoginOptions): Promise<void> {
-  await page.goto(`${serverURL}/admin/login`)
+export async function login({ page, user, redirect = '/mitglieder' }: LoginOptions): Promise<void> {
+  await page.goto(`/login?redirect=${encodeURIComponent(redirect)}`)
+  const main = page.locator('main')
+  await main.getByLabel('E-Mail-Adresse').fill(user.email)
+  await main.getByLabel('Passwort', { exact: true }).fill(user.password)
+  await main.getByRole('button', { name: 'Anmelden' }).click()
 
-  await page.fill('#field-email', user.email)
-  await page.fill('#field-password', user.password)
-  await page.click('button[type="submit"]')
-
-  await page.waitForURL(`${serverURL}/admin`)
-
-  const dashboardArtifact = page.locator('span[title="Übersicht"]')
-  await expect(dashboardArtifact).toBeVisible()
+  if (user.totpSecret) {
+    const code = main.getByLabel('Bestätigungscode')
+    await expect(code).toBeVisible()
+    await code.fill(totp(user.totpSecret, new Date(Date.now() + 30_000)))
+    await main.getByRole('button', { name: 'Code bestätigen' }).click()
+  }
+  await page.waitForURL((url) => url.pathname === redirect.split('?')[0])
 }
