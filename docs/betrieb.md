@@ -113,7 +113,7 @@ Reihenfolge: erst als **Staging** (z. B. `neu.bogensport-plauen.de`, mit Passwor
     - [pruefliste-verein.md](pruefliste-verein.md) mit dem Verein durchgehen.
     - Alle Formulare einmal absenden; die Mails müssen ankommen.
     - Anmelden, auch mit einem Mitgliedskonto.
-    - **Echte Client-IP:** Von einem fremden Anschluss (z. B. Handy ohne WLAN) die Seite aufrufen. Im Zugriffslog muss dessen öffentliche IP stehen, nicht `172.…` oder `fd…`. Wenn möglich über IPv4 und über IPv6 prüfen. Steht dort eine Docker-Adresse, teilen sich alle Besucher einen Rate-Limit-Zähler (Abschnitt 8).
+    - **Echte Client-IP:** Von einem fremden Anschluss (z. B. Handy ohne WLAN) die Seite aufrufen. Im Zugriffslog muss dessen öffentliche IP stehen, nicht `172.…` oder `fd…`. Wenn möglich über IPv4 und über IPv6 prüfen. Steht dort eine Docker-Adresse, teilen sich alle Besucher einen Rate-Limit-Zähler (Abschnitt 8). Danach vom selben Anschluss einmal `/kontakt` öffnen (lädt die Spamschutz-Aufgabe) und prüfen, dass `dc logs app | grep Client-IP` **nichts** ausgibt. Eine Zeile „interne Adresse (172.…)“ heißt: Caddy sieht nicht die echte IP. Bei Aufrufen vom Server selbst (z. B. `deploy.sh`) erscheint diese Meldung zu Recht; die Prüfung daher nach einem Neustart der App (`dc restart app`) nur mit dem fremden Anschluss machen.
       ```bash
       dc exec caddy tail -3 /var/log/caddy/access.log | grep -o '"remote_ip":"[^"]*"'
       ```
@@ -190,6 +190,7 @@ Basis-Images:
   ```
   - Eine Zeile je Meldung mit Uhrzeit und Stufe (`INFO`, `WARN`, `ERROR`).
   - Nicht zugestellte Mails erscheinen als `ERROR` mit „Mail“ bzw. „Nodemailer“ im Text.
+  - `[Client-IP] …` (einmal je Serverstart): Eine Anfrage kam ohne oder mit interner Absender-IP an. Alle Besucher teilen sich dann einen Rate-Limit-Zähler; siehe Abschnitt 8, „Anmeldung oder Formulare gehen bei allen nicht“. Prüfen mit `dc logs app | grep Client-IP`.
   - Docker begrenzt die Logs auf 5 × 10 MB je Container (`/etc/docker/daemon.json`, von `setup-server.sh` angelegt).
 - **Zugriffslogs (Caddy):** `dc exec caddy tail -f /var/log/caddy/access.log`. Jede Zeile ist ein JSON-Objekt mit IP, Zeit, Adresse, Status und Größe. Header und Einmal-Tokens aus Links (`?token=`) werden nicht gespeichert. Caddy rotiert ab 50 MB und löscht nach 14 Tagen, wie in der Datenschutzerklärung zugesagt (`ops/caddy/common.caddy`).
 - **Sicherheitsprotokoll:** Admin → Verwaltung → Sicherheitsprotokoll. Es verzeichnet Anmeldungen, Fehlversuche, Passwort- und 2FA-Änderungen, Rollen, Sperren und Löschungen. Nur Admins können es sehen, niemand kann es ändern. Einträge verschwinden nach 12 Monaten.
@@ -203,7 +204,10 @@ Basis-Images:
 4. Zertifikatsfehler: `dc logs caddy`. Port 80 und 443 müssen offen sein (`sudo ufw status`), und das DNS muss für alle Namen in `SITE_DOMAIN`/`REDIRECT_DOMAINS` auf den Server zeigen.
 
 ### Anmeldung oder Formulare gehen bei allen nicht
-- Erscheint „Zu viele Anmeldeversuche“ bei allen Nutzern, sieht Caddy vermutlich nicht die echten IPs, und alle teilen sich einen Zähler. Zugriffslog prüfen wie in Abschnitt 4, Abnahme. Ursache ist meist `"userland-proxy": false` in `/etc/docker/daemon.json`, das fehlt (danach `sudo systemctl restart docker`). Die Zähler verfallen nach höchstens 24 Stunden. Sofort leeren:
+- Erscheint „Zu viele Anmeldeversuche“ bei allen Nutzern, sieht Caddy vermutlich nicht die echten IPs, und alle teilen sich einen Zähler. Das App-Log sagt es direkt: `dc logs app | grep Client-IP`.
+  - „interne Adresse (172.…)“ bzw. „(fd…)“: Caddy bekommt die Verbindung von Docker statt vom Besucher.
+  - „ohne X-Real-IP“: Eine Anfrage erreichte die App an Caddy vorbei (der App-Port darf nicht veröffentlicht sein), oder `header_up X-Real-IP` fehlt in `ops/caddy/common.caddy`.
+  - Zugriffslog zusätzlich prüfen wie in Abschnitt 4, Abnahme. Ursache ist meist `"userland-proxy": false` in `/etc/docker/daemon.json`, das fehlt (danach `sudo systemctl restart docker`). Die Zähler verfallen nach höchstens 24 Stunden. Sofort leeren:
   ```bash
   dc exec db psql -U bsv -d bsv1960 -c "DELETE FROM rate_limits"
   ```
