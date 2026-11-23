@@ -2,7 +2,7 @@
  * Zugriffsregeln (docs/konzept.md, Abschnitt 2 + 5): Rolle × Collection × Operation.
  * Läuft gegen die Test-DB (vitest.config.mts) und leert sie zu Beginn.
  */
-import { getPayload, type CollectionSlug, type Payload } from 'payload'
+import { getPayload, type CollectionSlug, type Payload, type PayloadRequest } from 'payload'
 import sharp from 'sharp'
 import config from '@/payload.config'
 import { describe, it, beforeAll, afterAll, expect } from 'vitest'
@@ -423,6 +423,93 @@ describe('Vorstand', () => {
 
   it('darf keine Nutzer löschen (nur Admin)', async () => {
     await expectDenied(payload.delete({ collection: 'users', id: u.mitglied2.id, overrideAccess: false, user: u.vorstand }))
+  })
+
+  // Review R14: `roles` ist hasMany – Admin-/Vorstandskonten haben meist zusätzlich „mitglied“
+  it('ändert keine Admin-/Vorstandskonten mit weiteren Rollen (E-Mail, 2FA-Reset, Massenänderung)', async () => {
+    const admin2 = await createUser('admin2', ['admin', 'mitglied'])
+    const vorstand2 = await createUser('vorstand2', ['vorstand', 'mitglied'])
+    try {
+      for (const target of [admin2, vorstand2]) {
+        const asVorstand = { collection: 'users', id: target.id, overrideAccess: false, user: u.vorstand } as const
+        await expectDenied(payload.update({ ...asVorstand, data: { email: `uebernahme-${target.name}@test.local` } }))
+        await expectDenied(payload.update({ ...asVorstand, data: { resetTwoFactor: true } as Partial<User> }))
+        await expectDenied(payload.update({ ...asVorstand, data: { accountDisabled: true } }))
+        const after = await payload.findByID({ collection: 'users', id: target.id, depth: 0 })
+        expect(after).toMatchObject({ email: target.email, twoFactorEnabled: true, accountDisabled: false })
+      }
+      const bulk = await payload.update({
+        collection: 'users',
+        where: { id: { in: [admin2.id, vorstand2.id, u.trainer.id] } },
+        overrideAccess: false,
+        user: u.vorstand,
+        data: { name: 'trainer' },
+      })
+      expect(bulk.docs.map((d) => d.id)).toEqual([u.trainer.id])
+    } finally {
+      await payload.delete({ collection: 'users', where: { id: { in: [admin2.id, vorstand2.id] } } })
+    }
+  })
+
+  it('Schutz-Hook greift auch, wenn die Access-Regel umgangen wird', async () => {
+    const admin2 = await createUser('admin3', ['admin', 'mitglied'])
+    try {
+      await expectDenied(
+        payload.update({ collection: 'users', id: admin2.id, overrideAccess: true, user: u.vorstand, data: { name: 'gekapert' } }),
+      )
+    } finally {
+      await payload.delete({ collection: 'users', id: admin2.id })
+    }
+  })
+
+  it('bearbeitet weiterhin Trainer, Redakteure und das eigene Konto', async () => {
+    for (const target of [u.trainer, u.redakteur, u.vorstand]) {
+      const updated = await payload.update({ collection: 'users', id: target.id, overrideAccess: false, user: u.vorstand, data: { phone: '03741 123456' } })
+      expect(updated.phone).toBe('03741 123456')
+    }
+  })
+})
+
+// Review R15: Die Website verlangt dafür das aktuelle Passwort – REST/Admin darf das nicht umgehen
+describe('Eigenes Passwort / eigene E-Mail über REST', () => {
+  const rest = { payloadAPI: 'REST' } as Partial<PayloadRequest>
+
+  it('lässt sich nicht ändern', async () => {
+    for (const data of [{ password: 'Neues-Passwort-Bogen-2026' }, { email: 'neu-mitglied@test.local' }]) {
+      await expect(
+        payload.update({ collection: 'users', id: u.mitglied.id, overrideAccess: false, user: u.mitglied, req: rest, data }),
+      ).rejects.toMatchObject({ status: 400 })
+    }
+    // Auch Admins nicht am eigenen Konto (dafür gibt es die Website)
+    await expect(
+      payload.update({ collection: 'users', id: u.admin.id, overrideAccess: false, user: u.admin, req: rest, data: { password: 'Neues-Passwort-Bogen-2026' } }),
+    ).rejects.toMatchObject({ status: 400 })
+    const after = await payload.findByID({ collection: 'users', id: u.mitglied.id, depth: 0 })
+    expect(after.email).toBe('mitglied@test.local')
+  })
+
+  it('übrige Felder und unveränderte E-Mail (Admin-Formular schickt sie mit) bleiben möglich', async () => {
+    const updated = await payload.update({
+      collection: 'users',
+      id: u.mitglied.id,
+      overrideAccess: false,
+      user: u.mitglied,
+      req: rest,
+      data: { name: 'mitglied-rest', email: 'Mitglied@test.local' },
+    })
+    expect(updated.name).toBe('mitglied-rest')
+  })
+
+  it('Vorstand ändert die E-Mail eines Mitglieds weiterhin', async () => {
+    const updated = await payload.update({
+      collection: 'users',
+      id: u.mitglied2.id,
+      overrideAccess: false,
+      user: u.vorstand,
+      req: rest,
+      data: { email: 'mitglied2-neu@test.local' },
+    })
+    expect(updated.email).toBe('mitglied2-neu@test.local')
   })
 })
 

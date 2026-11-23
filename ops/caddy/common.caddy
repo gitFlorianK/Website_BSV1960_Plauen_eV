@@ -31,6 +31,11 @@
 		max_size 25MB
 	}
 
+	# Nur übliche Methoden an die App: TRACE & Co. beantwortet Next.js mit 500 und einem
+	# Stacktrace im Log (Review R21)
+	@unsupportedMethod not method GET HEAD POST PUT PATCH DELETE OPTIONS
+	respond @unsupportedMethod 405
+
 	reverse_proxy app:3000 {
 		# Grundlage der Rate-Limits: echte Client-IP. Überschreibt einen vom Client mitgeschickten Header.
 		header_up X-Real-IP {remote_host}

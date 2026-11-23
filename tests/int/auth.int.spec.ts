@@ -190,6 +190,11 @@ describe('Rücksprung nach der Anmeldung', () => {
     ['/\\evil.example', '/mitglieder'],
     ['javascript:alert(1)', '/mitglieder'],
     [undefined, '/mitglieder'],
+    // Erst nach Normalisierung protokollrelativ (Review R16)
+    ['/.//evil.example', '/mitglieder'],
+    ['/a/..//evil.example/x', '/mitglieder'],
+    ['/mitglieder/../..//evil.example', '/mitglieder'],
+    ['/mitglieder/./termine', '/mitglieder/termine'],
   ])('%s → %s', (input, expected) => {
     expect(safeReturnPath(input)).toBe(expected)
   })

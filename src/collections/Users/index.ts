@@ -1,4 +1,4 @@
-import type { Access, CollectionConfig, FieldAccess, Where } from 'payload'
+import type { Access, CollectionConfig, FieldAccess, PayloadRequest, Where } from 'payload'
 import { APIError, Forbidden, ValidationError } from 'payload'
 import { randomBytes } from 'crypto'
 
@@ -23,13 +23,35 @@ const readUsers: Access = ({ req: { user } }) => {
   return false
 }
 
-const updateUsers: Access = ({ req: { user } }) => {
-  const u = asUser(user)
+const hasProtectedRole = (roles: readonly string[] | null | undefined) =>
+  (roles ?? []).some((r) => PROTECTED_ROLES.includes(r))
+
+/**
+ * IDs aller Konten mit geschützter Rolle. Nicht über `roles: { not_in }` lösen: `roles` ist hasMany,
+ * `not_in` träfe jedes Konto mit irgendeiner anderen Rolle – also auch `[admin, mitglied]` (Review R14).
+ * `in` trifft dagegen korrekt jedes Konto, das eine der Rollen hat.
+ */
+async function protectedUserIds(req: PayloadRequest): Promise<(number | string)[]> {
+  const { docs } = await req.payload.find({
+    collection: 'users',
+    where: { roles: { in: PROTECTED_ROLES } },
+    depth: 0,
+    pagination: false,
+    select: {},
+    overrideAccess: true,
+    req,
+  })
+  return docs.map((d) => d.id)
+}
+
+const updateUsers: Access = async ({ req }) => {
+  const u = asUser(req.user)
   if (userHasRole(u, 'admin')) return true
   if (!u || u.accountDisabled) return false
   const self: Where = { id: { equals: u.id } }
   if (userHasRole(u, 'vorstand')) {
-    return { or: [self, { roles: { not_in: PROTECTED_ROLES } }] } as Where
+    const ids = await protectedUserIds(req)
+    return ids.length > 0 ? { or: [self, { id: { not_in: ids } }] } : true
   }
   return self
 }
@@ -246,8 +268,24 @@ export const Users: CollectionConfig<'users'> = {
       },
     ],
     beforeValidate: [
-      ({ data, operation, originalDoc }) => {
+      ({ data, operation, originalDoc, req }) => {
         if (!data) return data
+        // Eigenes Passwort / eigene E-Mail nicht über REST oder Admin ändern: Die Website verlangt dafür
+        // das aktuelle Passwort; ohne diese Sperre genügte eine fremde, offene Sitzung (Review R15).
+        // Server Actions (Local API) und Änderungen an fremden Konten (Vorstand/Admin) bleiben möglich.
+        const self = asUser(req.user)
+        if (operation === 'update' && req.payloadAPI !== 'local' && self && originalDoc && self.id === originalDoc.id) {
+          if (typeof data.password === 'string' && data.password.length > 0) {
+            throw new ValidationError({
+              errors: [{ path: 'password', message: 'Dein Passwort änderst du auf der Website unter „Mitgliederbereich → Sicherheit“.' }],
+            })
+          }
+          if (typeof data.email === 'string' && data.email.trim().toLowerCase() !== String(originalDoc.email).toLowerCase()) {
+            throw new ValidationError({
+              errors: [{ path: 'email', message: 'Deine E-Mail-Adresse kann nur der Vorstand ändern – bitte dort melden.' }],
+            })
+          }
+        }
         // Bei Einladung legt die Person ihr Passwort selbst fest → beim Anlegen Zufallswert.
         if (operation === 'create' && data.sendInvite === true) {
           data.password = randomPassword()
@@ -264,6 +302,22 @@ export const Users: CollectionConfig<'users'> = {
       },
     ],
     beforeChange: [
+      ({ data, operation, originalDoc, req }) => {
+        // Zweite Absicherung zu updateUsers: Konten mit Admin-/Vorstandsrolle ändert nur ein Admin
+        // (oder die Person selbst). Greift auch, falls die Access-Regel einmal falsch filtert (Review R14).
+        const actor = asUser(req.user)
+        if (
+          operation === 'update' &&
+          actor &&
+          originalDoc &&
+          actor.id !== originalDoc.id &&
+          !userHasRole(actor, 'admin') &&
+          hasProtectedRole(originalDoc.roles)
+        ) {
+          throw new Forbidden(req.t)
+        }
+        return data
+      },
       async ({ data, operation, req }) => {
         // Ohne Konto im System (frische Installation) wird das erste Konto Administrator –
         // angelegt über `pnpm user:create-admin`, nicht über das Admin-Panel.

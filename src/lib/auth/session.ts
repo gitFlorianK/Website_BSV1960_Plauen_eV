@@ -32,7 +32,9 @@ export function safeReturnPath(value: unknown, fallback: string = routes.members
   if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//') || value.includes('\\')) return fallback
   try {
     const url = new URL(value, 'http://x')
-    return url.host === 'x' ? `${url.pathname}${url.search}` : fallback
+    // Erst nach der Normalisierung prüfen: `/.//evil.example` wird zu `//evil.example` (Review R16)
+    if (url.host !== 'x' || url.pathname.startsWith('//')) return fallback
+    return `${url.pathname}${url.search}`
   } catch {
     return fallback
   }
