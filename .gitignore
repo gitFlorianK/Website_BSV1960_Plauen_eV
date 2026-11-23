@@ -3,6 +3,8 @@ dist
 node_modules
 .DS_Store
 .env
+# Lokales GitHub-Token, nie committen
+token.md
 # Selbstsigniertes Zertifikat von pnpm dev:lan
 .certs/
 .next
