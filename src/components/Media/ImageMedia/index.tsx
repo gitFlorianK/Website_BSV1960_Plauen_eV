@@ -65,7 +65,9 @@ export const ImageMedia: React.FC<MediaProps> = (props) => {
         .join(', ')
 
   return (
-    <picture className={cn(pictureClassName)}>
+    // Bei `fill` muss das direkte Elternelement positioniert sein (prüft next/image); <picture> füllt
+    // dazu den nächsten positionierten Vorfahren – das Bild landet an derselben Stelle wie zuvor
+    <picture className={cn(fill && 'absolute inset-0', pictureClassName)}>
       <NextImage
         alt={alt || ''}
         className={cn(imgClassName)}
