@@ -6,6 +6,7 @@
   "scripts": {
     "build": "cross-env NODE_OPTIONS=--no-deprecation next build",
     "dev": "cross-env NODE_OPTIONS=--no-deprecation NEXT_TELEMETRY_DISABLED=1 next dev -H 127.0.0.1",
+    "dev:lan": "bash scripts/dev-lan.sh",
     "dev:prod": "cross-env NODE_OPTIONS=--no-deprecation rm -rf .next && pnpm build && pnpm start",
     "import:legacy": "cross-env NODE_OPTIONS=--no-deprecation payload run scripts/import-legacy.ts",
     "user:create-admin": "cross-env NODE_OPTIONS=--no-deprecation payload run scripts/create-admin.ts",

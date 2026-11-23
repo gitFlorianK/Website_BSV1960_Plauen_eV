@@ -3,6 +3,8 @@ dist
 node_modules
 .DS_Store
 .env
+# Selbstsigniertes Zertifikat von pnpm dev:lan
+.certs/
 .next
 next-env.d.ts
 .vercel

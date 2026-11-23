@@ -24,6 +24,8 @@ const nextConfig: NextConfig = {
   },
   reactStrictMode: true,
   poweredByHeader: false,
+  // Nur Dev-Server: Zugriff aus dem Heimnetz (z. B. Handy) erlauben – Hostnamen/IPs kommagetrennt, ohne Port
+  allowedDevOrigins: process.env.DEV_ALLOWED_ORIGINS?.split(',').map((s) => s.trim()).filter(Boolean),
   redirects,
   async headers() {
     return [

@@ -19,6 +19,8 @@ pnpm import:legacy:fetch && pnpm import:legacy        # Inhalte der alten Websit
 ADMIN_EMAIL=du@example.org ADMIN_NAME="Dein Name" pnpm user:create-admin
 ```
 
+Vom Handy im Heimnetz testen: `pnpm dev:lan` startet den Dev-Server unter `https://<IP dieses Rechners>:3000` (Port 3000 in der Firewall freigeben). Das Zertifikat ist selbstsigniert (`scripts/dev-lan.sh`, liegt in `.certs/`); die Warnung im Browser einmal bestätigen. HTTPS ist nötig, weil die Formulare (ALTCHA) Web Crypto brauchen. Links in Mails zeigen dann auf die IP; auch am Rechner selbst dann die IP-Adresse statt `localhost` verwenden.
+
 Prüfen: `pnpm lint`, `pnpm typecheck`, `pnpm test:int` (Vitest), `pnpm test:e2e` (Playwright, gegen den laufenden Dev-Server). Die CI führt alles davon aus, die Browser-Tests auf einer frischen Datenbank.
 
 ## Dokumentation
