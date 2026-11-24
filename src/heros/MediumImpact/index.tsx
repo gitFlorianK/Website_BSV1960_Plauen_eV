@@ -5,9 +5,11 @@ import type { Page } from '@/payload-types'
 import { CMSLink } from '@/components/Link'
 import { Media } from '@/components/Media'
 import RichText from '@/components/RichText'
+import { publicMedia } from '@/utilities/publicMedia'
 
 /** Text links, Bild rechts. */
 export const MediumImpactHero: React.FC<Page['hero']> = ({ links, media, richText }) => {
+  const image = publicMedia(media)
   return (
     <section className="bg-brand-soft">
       <div className="container grid items-center gap-10 py-12 md:grid-cols-2 md:py-16">
@@ -23,12 +25,12 @@ export const MediumImpactHero: React.FC<Page['hero']> = ({ links, media, richTex
             </ul>
           )}
         </div>
-        {media && typeof media === 'object' && (
+        {image && (
           <Media
             className="overflow-hidden rounded-xl shadow-lg"
             imgClassName="w-full h-auto"
             priority
-            resource={media}
+            resource={image}
             size="(min-width: 768px) 50vw, 100vw"
           />
         )}

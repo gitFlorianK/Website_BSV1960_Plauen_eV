@@ -5,15 +5,17 @@ import type { Page } from '@/payload-types'
 import { CMSLink } from '@/components/Link'
 import { Media } from '@/components/Media'
 import RichText from '@/components/RichText'
+import { publicMedia } from '@/utilities/publicMedia'
 
 /** Großes Titelbild mit Text auf dunklem Verlauf (Startseite). */
 export const HighImpactHero: React.FC<Page['hero']> = ({ links, media, richText }) => {
+  const image = publicMedia(media)
   return (
     <section className="relative isolate overflow-hidden bg-ink text-white">
-      {media && typeof media === 'object' && (
+      {image && (
         // Ebene über <picture> (seit fill ein positioniertes <picture> erzeugt) – sonst liegt das Bild
         // über Text und Buttons und fängt die Klicks ab
-        <Media fill priority pictureClassName="-z-20" imgClassName="object-cover" resource={media} size="100vw" />
+        <Media fill priority pictureClassName="-z-20" imgClassName="object-cover" resource={image} size="100vw" />
       )}
       <div
         aria-hidden
