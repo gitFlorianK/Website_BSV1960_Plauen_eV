@@ -2,7 +2,7 @@
  * Seiteninhalte für den Import. Texte basieren auf www.bogensport-plauen.de (Stand 2026),
  * sprachlich überarbeitet. [OFFEN]-Markierungen kennzeichnen Angaben, die der Verein liefern muss.
  */
-import { bold, h, link, p, root, ul } from './lexical'
+import { bold, br, h, link, p, root, ul } from './lexical'
 
 type Ids = { heroImage: number }
 
@@ -35,7 +35,8 @@ export const pages = ({ heroImage }: Ids) => [
       type: 'highImpact' as const,
       media: heroImage,
       richText: root(
-        h('h1', 'Bogensport in Plauen – seit 1960'),
+        // „seit 1960“ zusammen in der zweiten Zeile (geschütztes Leerzeichen)
+        h('h1', 'Bogensport in Plauen –', br(), 'seit\u00A01960'),
         p(
           'Recurve, Compound, Langbogen und Jagdbogen: Bei uns trainieren Kinder, Jugendliche und Erwachsene – vom ersten Pfeil bis zur Deutschen Meisterschaft.',
         ),
