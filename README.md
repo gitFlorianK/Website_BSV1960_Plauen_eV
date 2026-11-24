@@ -13,11 +13,14 @@ Voraussetzungen: Node 24 (`.nvmrc`), pnpm 11 (`corepack enable`), Docker.
 ```bash
 cp .env.example .env              # PAYLOAD_SECRET, CRON_SECRET, PREVIEW_SECRET setzen (openssl rand -hex 32)
 pnpm install
-pnpm services:up                  # PostgreSQL + Mailpit (http://localhost:8025)
-pnpm dev                          # http://localhost:3000, Verwaltung unter /admin
+pnpm services:up                  # PostgreSQL + Mailpit (http://127.0.0.1:8025)
+pnpm dev                          # http://127.0.0.1:3000, Verwaltung unter /admin
 pnpm import:legacy:fetch && pnpm import:legacy        # Inhalte der alten Website (optional)
+# ohne Internet: pnpm import:legacy:placeholders statt import:legacy:fetch (Platzhalterbilder)
 ADMIN_EMAIL=du@example.org ADMIN_NAME="Dein Name" pnpm user:create-admin
 ```
+
+Dev-Server und Mailpit lauschen nur auf IPv4 (`127.0.0.1`). `localhost` löst auf manchen Systemen (z. B. Fedora) zuerst zu `::1` auf; ist die Seite unter `localhost` nicht erreichbar, `http://127.0.0.1:3000` verwenden.
 
 Vom Handy im Heimnetz testen: `pnpm dev:lan` startet den Dev-Server unter `https://<IP dieses Rechners>:3000` (Port 3000 in der Firewall freigeben). Das Zertifikat ist selbstsigniert (`scripts/dev-lan.sh`, liegt in `.certs/`); die Warnung im Browser einmal bestätigen. HTTPS ist nötig, weil die Formulare (ALTCHA) Web Crypto brauchen. Links in Mails zeigen dann auf die IP; auch am Rechner selbst dann die IP-Adresse statt `localhost` verwenden.
 
@@ -31,7 +34,8 @@ Prüfen: `pnpm lint`, `pnpm typecheck`, `pnpm test:int` (Vitest), `pnpm test:e2e
 | [docs/betrieb.md](docs/betrieb.md) | Server einrichten, Updates einspielen, Überwachung, Notfälle |
 | [docs/backup.md](docs/backup.md) | Datensicherung und Wiederherstellung |
 | [docs/pruefliste-verein.md](docs/pruefliste-verein.md) | offene Punkte, die der Verein klären muss |
-| [docs/review-2026-11.md](docs/review-2026-11.md) | Review mit offenen Befunden |
+| [docs/review-2026-11.md](docs/review-2026-11.md) | Review R1–R13 (alle erledigt) |
+| [docs/review-2026-11-23-nutzer-sicherheit.md](docs/review-2026-11-23-nutzer-sicherheit.md) | Review aus Nutzer- und Sicherheitssicht mit offenen Befunden |
 | [CLAUDE.md](CLAUDE.md) | Architektur und Konventionen für Entwickler |
 
 ## Aufbau
