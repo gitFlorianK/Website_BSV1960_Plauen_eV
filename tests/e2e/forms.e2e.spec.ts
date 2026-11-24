@@ -1,5 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 
+import { seed } from '../helpers/seedUser'
+
 /**
  * Formulare im Browser: ALTCHA löst im Browser, Server Action speichert, Mail landet in Mailpit.
  * Jede Testdatei nutzt eine eigene (vom Proxy gesetzte) Client-IP, damit Rate-Limits zwischen
@@ -71,17 +73,26 @@ test('Mitgliedsantrag blendet Angaben der Erziehungsberechtigten nur bei Minderj
   await expect(form.getByRole('group', { name: 'Erziehungsberechtigte(r)' })).toHaveCount(0)
 })
 
-test('„Jetzt anmelden“ wählt den Kurs im Formular vor', async ({ page }) => {
-  await page.goto('/anfaengerkurs')
-  const links = page.getByRole('link', { name: /Jetzt anmelden|Auf die Warteliste/ })
-  expect(await links.count()).toBeGreaterThanOrEqual(2)
-  const select = page.locator('#anmeldung select[name="course"]')
-  // Nacheinander zwei Kurse: auch der zweite Link auf derselben Seite muss die Auswahl ändern
-  for (const i of [0, 1]) {
-    const id = new URL((await links.nth(i).getAttribute('href'))!, 'http://x').searchParams.get('kurs')
-    await links.nth(i).click()
-    await expect(select).toHaveValue(id!)
-  }
+test.describe('Kursanmeldung', () => {
+  // Eigene Kurse: Die importierten Altinhalte enthalten keine (CI startet mit leerer Kursliste)
+  const deadline = `${new Date().getFullYear() + 1}-03-31T12:00:00.000Z`
+  let courseIds: number[] = []
+  test.beforeAll(() => {
+    courseIds = (['adults', 'youth'] as const).map(
+      (audience) => seed<{ id: number }>({ action: 'course', title: `E2E Kurs ${audience}`, audience, deadline }).id,
+    )
+  })
+  test.afterAll(() => seed({ action: 'deleteCourses', titlePrefix: 'E2E Kurs %' }))
+
+  test('„Jetzt anmelden“ wählt den Kurs im Formular vor', async ({ page }) => {
+    await page.goto('/anfaengerkurs')
+    const select = page.locator('#anmeldung select[name="course"]')
+    // Nacheinander zwei Kurse: auch der zweite Link auf derselben Seite muss die Auswahl ändern
+    for (const id of courseIds) {
+      await page.locator(`a[href="/anfaengerkurs?kurs=${id}#anmeldung"]`).click()
+      await expect(select).toHaveValue(String(id))
+    }
+  })
 })
 
 test('Bestätigungsseite: ungültiger Link wird erst per Klick geprüft', async ({ page }) => {

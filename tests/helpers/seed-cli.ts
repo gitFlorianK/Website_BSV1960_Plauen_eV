@@ -18,6 +18,8 @@ type Task =
   | { action: 'deleteEmptyDrafts' }
   | { action: 'post'; title: string; slug: string; text: string; visibility: 'public' | 'members'; status: 'draft' | 'published' }
   | { action: 'deletePost'; slug: string }
+  | { action: 'course'; title: string; audience: 'adults' | 'youth'; deadline: string }
+  | { action: 'deleteCourses'; titlePrefix: string }
   | { action: 'baseUser' }
 
 const task = JSON.parse(process.env.E2E_SEED ?? '{}') as Task
@@ -99,6 +101,19 @@ switch (task.action) {
     result = { id: ev.id }
     break
   }
+  case 'course': {
+    await payload.delete({ collection: 'courses', where: { title: { equals: task.title } }, context })
+    const course = await payload.create({
+      collection: 'courses',
+      data: { title: task.title, audience: task.audience, status: 'open', capacity: 10, registrationDeadline: task.deadline, sessions: [{ start: task.deadline }] },
+      context,
+    })
+    result = { id: course.id }
+    break
+  }
+  case 'deleteCourses':
+    await payload.delete({ collection: 'courses', where: { title: { like: task.titlePrefix } }, context })
+    break
   case 'deleteEvent':
     await payload.delete({ collection: 'events', where: { slug: { equals: task.slug } }, context })
     break
