@@ -33,6 +33,21 @@ Diese Punkte kann nur der Verein klären. Alles Inhaltliche lässt sich danach i
 - [ ] **Dokumente** für den Mitgliederbereich hochladen: Satzung, Beitragsordnung, Protokolle (*Dokumente*).
 - [ ] **Logo** als Vektordatei (SVG oder PDF) und aktuelle Fotos mit Einwilligung.
 
+## Startseite und erster Eindruck
+
+Ein neuer Besucher sieht auf der Startseite zuerst Termine und die letzten drei Beiträge. Mit den Altinhalten sind das keine Termine und Berichte von 2019/20 – der Verein wirkt dann nicht mehr aktiv (Review R18). Die Technik ist angepasst, der Rest ist Inhalt:
+
+- [ ] **Aktueller Beitrag zum Start**, z. B. „Unsere neue Website“ oder ein Rückblick auf die Saison 2026/27 (*Beiträge*). Siehe auch „Aktuelles“ oben.
+- [ ] **Beitragsbilder:** Beiträge mit Titelbild wirken auf der Startseite deutlich lebendiger; ohne Bild zeigt die Karte nur einen schmalen Farbstreifen (*Beiträge → Titelbild*).
+- [ ] **Anfängerkurse auf der Startseite?** Bisher führt nur der Button im Titelbild zum Kurs. Soll die Startseite die offenen Kurse direkt zeigen, lässt sich der Block „Kursliste“ einfügen (*Seiten → Startseite → Reiter „Content“*).
+- [ ] **Menüpunkt „Galerie“:** Alle Alben sind nur für Mitglieder sichtbar; Besucher sehen dort nur einen Hinweis. Wollt ihr den Menüpunkt behalten, ihn aus der Hauptnavigation nehmen (*Inhalte → Hauptnavigation*) oder einzelne Alben mit Einverständnis der Abgebildeten öffentlich stellen?
+- [ ] **Zum Schluss auf dem Handy ansehen:** Startseite, Termine, Anfängerkurs. Steht dort überall etwas Aktuelles?
+
+## Hinweise für die Redaktion
+
+- **Sichtbarkeit von Bildern:** Ein Bild mit Sichtbarkeit „Nur Mitglieder“ erscheint nie als Titelbild oder in öffentlichen Beiträgen und Seiten – die Stelle bleibt dann leer. Bilder für öffentliche Inhalte also auf „Öffentlich“ stellen (*Medien → Sichtbarkeit*), aber nur mit Einverständnis der Abgebildeten. Neue Bilder sind standardmäßig öffentlich.
+- **Kurse:** Nur Kurse mit „Anmeldung offen“ oder „Nur Warteliste“ erscheinen im Anmeldeformular, und nur bis zum Anmeldeschluss. „Jetzt anmelden“ in der Kursliste wählt den Kurs im Formular automatisch vor.
+
 ## Konten
 
 - [ ] Wer bekommt welche Rolle (Admin, Vorstand, Trainer, Redakteur)? Admin und Vorstand müssen die Zwei-Faktor-Anmeldung einrichten, sonst wirken ihre Rechte nicht.
