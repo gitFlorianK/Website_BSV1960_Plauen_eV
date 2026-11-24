@@ -5,6 +5,7 @@ import { getPayload } from 'payload'
 import type { SponsorListBlock as Props } from '@/payload-types'
 import { Media } from '@/components/Media'
 import { SectionHeading } from '@/components/Section'
+import { publicMedia } from '@/utilities/publicMedia'
 import { isSafeUrl } from '@/utilities/safeUrl'
 
 export const SponsorListBlock: React.FC<Props> = async ({ heading, intro }) => {
@@ -25,7 +26,7 @@ export const SponsorListBlock: React.FC<Props> = async ({ heading, intro }) => {
       <SectionHeading title={heading} intro={intro} />
       <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {docs.map((s) => {
-          const logo = typeof s.logo === 'object' && s.logo?.visibility === 'public' ? s.logo : null
+          const logo = publicMedia(s.logo)
           const content = (
             <>
               {logo ? (

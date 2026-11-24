@@ -5,6 +5,7 @@ import type { BoardMembersBlock as Props } from '@/payload-types'
 import { Media } from '@/components/Media'
 import { SectionHeading } from '@/components/Section'
 import { getCachedGlobal } from '@/utilities/getGlobals'
+import { publicMedia } from '@/utilities/publicMedia'
 
 export const BoardMembersBlock: React.FC<Props> = async ({ heading, intro }) => {
   const site = await getCachedGlobal('site-settings', 1)()
@@ -17,7 +18,7 @@ export const BoardMembersBlock: React.FC<Props> = async ({ heading, intro }) => 
       {/* Fotos liegen nur in ca. 240 × 300 px vor – Karten daher schmal halten */}
       <ul className="grid max-w-4xl grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3">
         {board.map((m, i) => {
-          const photo = typeof m.photo === 'object' && m.photo?.visibility === 'public' ? m.photo : null
+          const photo = publicMedia(m.photo)
           return (
             <li key={m.id ?? i} className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
               <div className="relative aspect-[4/5] bg-muted">

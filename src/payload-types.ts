@@ -297,12 +297,6 @@ export interface Post {
   };
   publishedAt?: string | null;
   authors?: (number | User)[] | null;
-  populatedAuthors?:
-    | {
-        id?: string | null;
-        name?: string | null;
-      }[]
-    | null;
   visibility: 'public' | 'members';
   /**
    * When enabled, the slug will auto-generate from the title field on save and autosave.
@@ -1697,12 +1691,6 @@ export interface PostsSelect<T extends boolean = true> {
       };
   publishedAt?: T;
   authors?: T;
-  populatedAuthors?:
-    | T
-    | {
-        id?: T;
-        name?: T;
-      };
   visibility?: T;
   generateSlug?: T;
   slug?: T;

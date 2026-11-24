@@ -81,3 +81,10 @@ export const requestActor = (req?: Partial<PayloadRequest>) => {
   const u = req?.user as Pick<User, 'id' | 'name'> | null | undefined
   return u && typeof u.id === 'number' ? { id: u.id, name: u.name } : null
 }
+
+/**
+ * Eintrag zu einer laufenden Payload-Operation (Hooks): Akteur und IP stammen aus `req`, der
+ * Eintrag läuft in derselben Transaktion.
+ */
+export const auditRequest = (req: PayloadRequest, entry: Omit<AuditEntry, 'actor' | 'ip'>) =>
+  audit(req.payload, { ...entry, actor: requestActor(req), ip: requestIp(req) }, req)

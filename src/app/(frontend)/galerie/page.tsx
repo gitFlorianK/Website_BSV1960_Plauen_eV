@@ -10,14 +10,11 @@ import { LowImpactHero } from '@/heros/LowImpact'
 import type { Media as MediaType } from '@/payload-types'
 import { formatDate } from '@/utilities/dates'
 import { mergeOpenGraph, SITE_NAME } from '@/utilities/mergeOpenGraph'
+import { publicMedia } from '@/utilities/publicMedia'
 import { routes } from '@/utilities/routes'
 
-const cover = (g: { coverImage?: number | MediaType | null; images?: (number | MediaType)[] | null }) => {
-  const candidates = [g.coverImage, ...(g.images ?? [])]
-  return (
-    candidates.find((m): m is MediaType => typeof m === 'object' && m !== null && m.visibility === 'public') ?? null
-  )
-}
+const cover = (g: { coverImage?: number | MediaType | null; images?: (number | MediaType)[] | null }) =>
+  [g.coverImage, ...(g.images ?? [])].map(publicMedia).find((m) => m !== null) ?? null
 
 export default async function GalleriesPage() {
   const payload = await getPayload({ config: configPromise })

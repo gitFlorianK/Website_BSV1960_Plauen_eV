@@ -14,8 +14,7 @@ import { visibilityField } from '@/fields/visibility'
 import { Banner } from '../../blocks/Banner/config'
 import { MediaBlock } from '../../blocks/MediaBlock/config'
 import { generatePreviewPath } from '../../utilities/generatePreviewPath'
-import { populateAuthors } from './hooks/populateAuthors'
-import { revalidateDelete, revalidatePost } from './hooks/revalidatePost'
+import { revalidatePosts } from '@/hooks/revalidate'
 
 import {
   MetaDescriptionField,
@@ -215,37 +214,12 @@ export const Posts: CollectionConfig<'posts'> = {
       hasMany: true,
       relationTo: 'users',
     },
-    // This field is only used to populate the user data via the `populateAuthors` hook
-    // This is because the `user` collection has access control locked to protect user privacy
-    // GraphQL will also not return mutated user data that differs from the underlying schema
-    {
-      name: 'populatedAuthors',
-      type: 'array',
-      access: {
-        update: () => false,
-      },
-      admin: {
-        disabled: true,
-        readOnly: true,
-      },
-      fields: [
-        {
-          name: 'id',
-          type: 'text',
-        },
-        {
-          name: 'name',
-          type: 'text',
-        },
-      ],
-    },
     visibilityField,
     slugField(),
   ],
   hooks: {
-    afterChange: [revalidatePost],
-    afterRead: [populateAuthors],
-    afterDelete: [revalidateDelete],
+    afterChange: [revalidatePosts.afterChange],
+    afterDelete: [revalidatePosts.afterDelete],
   },
   versions: {
     drafts: {

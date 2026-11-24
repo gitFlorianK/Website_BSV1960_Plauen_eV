@@ -7,6 +7,7 @@ import type { Media as MediaType, Post } from '@/payload-types'
 import { Media } from '@/components/Media'
 import { formatDate } from '@/utilities/dates'
 import { routes } from '@/utilities/routes'
+import { publicMedia } from '@/utilities/publicMedia'
 import { cn } from '@/utilities/ui'
 
 export type CardPostData = Pick<Post, 'slug' | 'categories' | 'meta' | 'title'> &
@@ -14,8 +15,8 @@ export type CardPostData = Pick<Post, 'slug' | 'categories' | 'meta' | 'title'> 
 
 const publicImage = (doc: CardPostData): MediaType | null => {
   for (const img of [doc.meta?.image, doc.heroImage]) {
-    // Bilder „nur für Mitglieder“ lassen sich (noch) nicht über next/image optimieren
-    if (img && typeof img === 'object' && img.visibility === 'public') return img
+    const pub = publicMedia(img)
+    if (pub) return pub
   }
   return null
 }

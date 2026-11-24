@@ -1,6 +1,6 @@
 import type { CollectionAfterDeleteHook, CollectionConfig } from 'payload'
 
-import { audit, requestActor, requestIp } from '@/lib/audit'
+import { auditRequest, requestActor } from '@/lib/audit'
 
 /** Collections ohne Löschprotokoll: das Protokoll selbst und interne Zähler. */
 const SKIP = new Set(['audit-log', 'rate-limits'])
@@ -10,9 +10,8 @@ const SKIP = new Set(['audit-log', 'rate-limits'])
  * Löschungen ohne Nutzer (Lösch-Jobs, Skripte) schreiben stattdessen einen Sammeleintrag.
  */
 const auditDelete: CollectionAfterDeleteHook = async ({ collection, id, req }) => {
-  const actor = requestActor(req)
-  if (!actor) return
-  await audit(req.payload, { action: 'doc.deleted', actor, target: { collection: collection.slug, id }, ip: requestIp(req) }, req)
+  if (!requestActor(req)) return
+  await auditRequest(req, { action: 'doc.deleted', target: { collection: collection.slug, id } })
 }
 
 export function withDeleteAudit(config: CollectionConfig): CollectionConfig {
