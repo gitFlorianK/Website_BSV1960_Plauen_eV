@@ -35,7 +35,7 @@ Prüfen: `pnpm lint`, `pnpm typecheck`, `pnpm test:int` (Vitest), `pnpm test:e2e
 | [docs/backup.md](docs/backup.md) | Datensicherung und Wiederherstellung |
 | [docs/pruefliste-verein.md](docs/pruefliste-verein.md) | offene Punkte, die der Verein klären muss |
 | [docs/review-2026-11.md](docs/review-2026-11.md) | Review R1–R13 (alle erledigt) |
-| [docs/review-2026-11-23-nutzer-sicherheit.md](docs/review-2026-11-23-nutzer-sicherheit.md) | Review aus Nutzer- und Sicherheitssicht mit offenen Befunden |
+| [docs/review-2026-11-23-nutzer-sicherheit.md](docs/review-2026-11-23-nutzer-sicherheit.md) | Review aus Nutzer- und Sicherheitssicht (offen nur noch Inhalte zu R18) |
 | [CLAUDE.md](CLAUDE.md) | Architektur und Konventionen für Entwickler |
 
 ## Aufbau

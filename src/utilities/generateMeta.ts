@@ -6,6 +6,12 @@ import { mergeOpenGraph, SITE_NAME } from './mergeOpenGraph'
 import { getServerSideURL } from './getURL'
 import { docPath, type LinkableCollection } from './routes'
 
+/** Metadaten der 404-Seite – auch für Routen, deren Dokument fehlt (deren generateMetadata läuft zuerst). */
+export const notFoundMeta: Metadata = {
+  title: `Seite nicht gefunden | ${SITE_NAME}`,
+  robots: { index: false },
+}
+
 const getImageURL = (image?: Media | Config['db']['defaultIDType'] | null) => {
   const serverUrl = getServerSideURL()
   // Nur öffentliche Bilder als Vorschaubild verwenden

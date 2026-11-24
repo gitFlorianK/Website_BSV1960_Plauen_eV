@@ -1,5 +1,6 @@
 'use client'
 
+import { useSearchParams } from 'next/navigation'
 import React from 'react'
 
 import { courseRegistrationAction } from '@/lib/forms/actions'
@@ -12,17 +13,22 @@ export type CourseOption = { id: number; label: string }
 
 export function CourseRegistrationForm({ courses }: { courses: CourseOption[] }) {
   const options = courses.map((c) => ({ value: String(c.id), label: c.label }))
+  // „Jetzt anmelden“ in der Kursliste übergibt den Kurs (?kurs=<id>); nur offene Kurse übernehmen
+  const fromLink = useSearchParams().get('kurs')
+  const preselected = options.some((o) => o.value === fromLink) ? fromLink : null
   return (
     <FormShell action={courseRegistrationAction} submitLabel="Verbindlich anmelden">
       {({ values, errors }) => (
         <>
           <SelectField
+            // neu aufbauen, wenn ein anderer Kurs verlinkt wird (Link auf derselben Seite)
+            key={preselected ?? ''}
             name="course"
             label="Kurs"
             required
             options={options}
             placeholder={options.length > 1 ? 'Bitte wählen' : undefined}
-            defaultValue={values.course ?? (options.length === 1 ? options[0].value : '')}
+            defaultValue={values.course ?? preselected ?? (options.length === 1 ? options[0].value : '')}
             error={errors.course}
           />
           <p className="-mt-2 text-sm text-muted-foreground">Angaben zur teilnehmenden Person:</p>

@@ -20,13 +20,15 @@ R15 und R16 sind kleinere Sicherheitslücken mit geringem Aufwand. Aus Nutzersic
 | R14 | Vorstand kann Admin-/Vorstandskonten mit zusätzlicher Rolle übernehmen | **kritisch (Sicherheit)** | klein | **behoben** |
 | R15 | Mitglieder ändern E-Mail und Passwort per REST ohne aktuelles Passwort | mittel (Sicherheit) | klein | **behoben** |
 | R16 | Open Redirect auf `/login` für angemeldete Nutzer | niedrig–mittel (Sicherheit) | trivial | **behoben** |
-| R17 | „Jetzt anmelden“ wählt den Kurs nicht vor | niedrig–mittel (Nutzer) | klein | offen |
-| R18 | Startseite wirkt veraltet: neueste Beiträge von 2020, keine Termine, leere Bildflächen | mittel (Nutzer, Inhalt) | Inhalt + klein | offen |
-| R19 | 404-Seite trägt den Titel der Startseite | niedrig | trivial | offen |
-| R20 | Einige Klickflächen kleiner als 24 px | niedrig (Barrierefreiheit) | klein | offen |
+| R17 | „Jetzt anmelden“ wählt den Kurs nicht vor | niedrig–mittel (Nutzer) | klein | **behoben** |
+| R18 | Startseite wirkt veraltet: neueste Beiträge von 2020, keine Termine, leere Bildflächen | mittel (Nutzer, Inhalt) | Inhalt + klein | **Code behoben**, Inhalt offen |
+| R19 | 404-Seite trägt den Titel der Startseite | niedrig | trivial | **behoben** |
+| R20 | Einige Klickflächen kleiner als 24 px | niedrig (Barrierefreiheit) | klein | **behoben** |
 | R21 | `TRACE`-Anfragen erzeugen 500 und einen Stacktrace im Log | niedrig (Betrieb) | trivial | **behoben** |
 
 **Nachtrag 23.11.2026:** Die Sicherheitsbefunde R14, R15, R16 und R21 sind behoben. Für R14–R16 gibt es 10 neue Integrationstests; die einschlägigen scheitern am alten Code und laufen mit dem neuen durch. Zusätzlich ist alles am laufenden System nachgeprüft (jeweils „Behoben“ beim Befund).
+
+**Nachtrag 24.11.2026:** R17, R19 und R20 sind behoben, bei R18 der technische Teil. Neue E2E-Tests: Kursvorauswahl, Titel der 404-Seite, Mindestgröße der Klickflächen. Offen bleiben bei R18 die Inhalte (aktueller Beitrag, Termine 2027) – siehe [pruefliste-verein.md](pruefliste-verein.md).
 
 ## Befunde
 
@@ -87,6 +89,8 @@ Auf `/anfaengerkurs` springt „Jetzt anmelden“ beim Kinderkurs zum Formular. 
 
 **Behebung:** Link mit Kurs-ID (z. B. `?kurs=<id>#anmelden`), Formular wählt ihn vor.
 
+**Behoben:** „Jetzt anmelden“ verlinkt `routes.courseRegistrationFor(id)` (`/anfaengerkurs?kurs=<id>#anmeldung`); das Formular übernimmt den Kurs, wenn er unter den offenen Kursen ist, auch bei einem zweiten Klick auf derselben Seite. E2E-Test in `forms.e2e.spec.ts`.
+
 ### R18 – Startseite wirkt veraltet (mittel, Inhalt)
 
 Auf dem Handy sieht ein neuer Besucher:
@@ -102,11 +106,15 @@ Die Beitragskarten ohne Bild zeigen jeweils eine große Platzhalterfläche: drei
 - Bis Galerien existieren: den Menüpunkt „Galerie“ ausblenden oder auf der Seite erklären, was kommt.
 - Siehe auch [pruefliste-verein.md](pruefliste-verein.md).
 
+**Behoben (Code):** Beitragskarten ohne Bild zeigen statt der Platzhalterfläche nur einen schmalen Farbstreifen. Die Galerie-Seite verweist Mitglieder auf die Alben im Mitgliederbereich. **Offen (Inhalt, Verein):** aktueller Beitrag und Termine 2027, siehe Prüfliste.
+
 ### R19 – 404-Seite mit Startseiten-Titel (niedrig)
 
 Unbekannte Adressen liefern korrekt 404 mit eigener Seite. Der Browser-Tab zeigt aber „BSV 1960 Plauen – Bogensport im Vogtland“, ohne Beschreibung.
 
 **Behebung:** `title: 'Seite nicht gefunden'` in den Metadaten der 404-Seite.
+
+**Behoben:** `notFoundMeta` (`src/utilities/generateMeta.ts`, Titel „Seite nicht gefunden | BSV 1960 Plauen“, `noindex`) gilt für die 404-Seite und für alle Routen, deren Dokument fehlt (Seiten, Beiträge, Termine, Galerien, Saisons) – deren `generateMetadata` läuft vor der 404-Seite.
 
 ### R20 – Kleine Klickflächen (niedrig)
 
@@ -120,6 +128,8 @@ Unter 24 × 24 px (WCAG 2.2, 2.5.8) liegen:
 Für Links im Fließtext gibt es eine Ausnahme. Am Handy sind die Footer-Links und die Checkboxen aber trotzdem fummelig.
 
 **Behebung:** Mindesthöhe bzw. Innenabstand für diese Elemente, Checkboxen mit 20–24 px.
+
+**Behoben:** Footer-Kontaktlinks, „.ics herunterladen“, „Passwort vergessen?“ und die Zurück-Links („Alle Beiträge“ u. a.) haben Innenabstand (≥ 28 px hoch), Checkboxen sind 24 × 24 px. E2E-Test misst die Klickflächen.
 
 ### R21 – `TRACE` erzeugt 500 (niedrig)
 
@@ -164,5 +174,5 @@ Für Links im Fließtext gibt es eine Ausnahme. Am Handy sind die Footer-Links u
 ## Vorschlag für die Reihenfolge
 
 1. ~~R14, R15, R16, R21~~ erledigt.
-2. R18 mit dem Verein klären (Inhalte), dazu die Karten ohne Bild verbessern.
-3. R17, R19, R20 nach Gelegenheit.
+2. ~~R17, R19, R20~~ erledigt, R18 technisch erledigt.
+3. R18: Inhalte mit dem Verein klären (aktueller Beitrag, Termine 2027).

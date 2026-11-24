@@ -7,6 +7,7 @@ import { getPayload } from 'payload'
 import { findPosts, findSeasons, PostListView, SeasonNav } from '@/components/PostList'
 import { LowImpactHero } from '@/heros/LowImpact'
 import { formatDate } from '@/utilities/dates'
+import { notFoundMeta } from '@/utilities/generateMeta'
 import { SITE_NAME } from '@/utilities/mergeOpenGraph'
 import { routes } from '@/utilities/routes'
 
@@ -60,8 +61,9 @@ export default async function SeasonPage({ params, searchParams }: Args) {
 export async function generateMetadata({ params }: Args): Promise<Metadata> {
   const { slug } = await params
   const season = await findSeason(decodeURIComponent(slug))
+  if (!season) return notFoundMeta
   return {
-    title: season ? `Ergebnisse ${season.name} | ${SITE_NAME}` : SITE_NAME,
+    title: `Ergebnisse ${season.name} | ${SITE_NAME}`,
     alternates: { canonical: routes.season(slug) },
   }
 }

@@ -107,7 +107,7 @@ export const CourseListBlock: React.FC<Props> = async ({ heading, intro, emptyTe
                 {(c.status === 'open' || c.status === 'waitlist') && (
                   <div className="mt-6 border-t border-border pt-4">
                     <Link
-                      href={routes.courseRegistration}
+                      href={routes.courseRegistrationFor(c.id)}
                       className="inline-flex h-11 items-center rounded-md bg-brand px-6 font-semibold text-primary-foreground hover:bg-brand-hover"
                     >
                       {c.status === 'waitlist' ? 'Auf die Warteliste' : 'Jetzt anmelden'}

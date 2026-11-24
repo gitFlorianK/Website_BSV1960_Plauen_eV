@@ -1,8 +1,12 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import React from 'react'
 
 import { Button } from '@/components/ui/button'
+import { notFoundMeta } from '@/utilities/generateMeta'
 import { routes } from '@/utilities/routes'
+
+export const metadata: Metadata = notFoundMeta
 
 export default function NotFound() {
   return (

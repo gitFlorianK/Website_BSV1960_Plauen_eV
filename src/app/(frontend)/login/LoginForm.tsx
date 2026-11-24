@@ -54,7 +54,7 @@ export function LoginForm({ returnTo }: { returnTo: string }) {
             <Button type="submit" size="lg" disabled={pending}>
               {pending ? 'Wird geprüft …' : 'Anmelden'}
             </Button>
-            <Link href={routes.forgotPassword} className="text-sm font-medium text-brand-text underline underline-offset-2">
+            <Link href={routes.forgotPassword} className="inline-block py-1 text-sm font-medium text-brand-text underline underline-offset-2">
               Passwort vergessen?
             </Link>
           </div>

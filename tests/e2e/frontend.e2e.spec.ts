@@ -99,11 +99,29 @@ test.describe('Frontend', () => {
   })
 
   test('404-Seite auf Deutsch – auch für tiefe und verschachtelte Adressen, mit Layout', async ({ page }) => {
-    for (const path of ['/gibt-es-nicht', '/a/b/c', '/aktuelles/gibt/es-nicht', '/termine/x/y']) {
+    for (const path of ['/gibt-es-nicht', '/a/b/c', '/aktuelles/gibt/es-nicht', '/termine/x/y', '/aktuelles/gibt-es-nicht']) {
       const res = await page.goto(path)
       expect(res?.status(), path).toBe(404)
       await expect(page.getByRole('heading', { level: 1 }), path).toHaveText('Daneben getroffen')
+      await expect(page, path).toHaveTitle('Seite nicht gefunden | BSV 1960 Plauen')
       await expect(page.getByRole('link', { name: 'Training' }).first(), path).toBeVisible()
+    }
+  })
+
+  test('Klickflächen mindestens 24 × 24 px (WCAG 2.2, 2.5.8)', async ({ page }) => {
+    const targets: [string, (p: typeof page) => ReturnType<typeof page.locator>][] = [
+      ['/', (p) => p.locator('footer a[href^="tel:"]')],
+      ['/', (p) => p.locator('footer a[href^="mailto:"]')],
+      ['/termine', (p) => p.getByRole('link', { name: '.ics herunterladen' })],
+      ['/login', (p) => p.getByRole('link', { name: 'Passwort vergessen?' })],
+      ['/kontakt', (p) => p.locator('#kontaktformular input[type="checkbox"]').first()],
+    ]
+    for (const [path, find] of targets) {
+      await page.goto(path)
+      const box = await find(page).boundingBox()
+      expect(box, path).not.toBeNull()
+      expect(box!.height, path).toBeGreaterThanOrEqual(24)
+      expect(box!.width, path).toBeGreaterThanOrEqual(24)
     }
   })
 })

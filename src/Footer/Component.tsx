@@ -45,17 +45,17 @@ export async function Footer() {
             </p>
           )}
           {site?.phone && phoneHref && (
-            <p className="mt-2 flex gap-2">
-              <PhoneIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-brand" />
-              <a className="hover:underline" href={phoneHref}>
+            <p className="mt-1 flex gap-2">
+              <PhoneIcon aria-hidden className="mt-1.5 size-4 shrink-0 text-brand" />
+              <a className="inline-block py-1 hover:underline" href={phoneHref}>
                 {site.phone}
               </a>
             </p>
           )}
           {site?.email && (
-            <p className="mt-2 flex gap-2">
-              <MailIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-brand" />
-              <a className="hover:underline" href={`mailto:${site.email}`}>
+            <p className="mt-1 flex gap-2">
+              <MailIcon aria-hidden className="mt-1.5 size-4 shrink-0 text-brand" />
+              <a className="inline-block py-1 hover:underline" href={`mailto:${site.email}`}>
                 {site.email}
               </a>
             </p>

@@ -41,13 +41,14 @@ export const Card: React.FC<{
         className,
       )}
     >
-      <div className="relative aspect-[16/9] bg-muted">
-        {image ? (
+      {image ? (
+        <div className="relative aspect-[16/9] bg-muted">
           <Media fill resource={image} imgClassName="object-cover" size="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" />
-        ) : (
-          <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_center,var(--brand)_0_12%,var(--brand-soft)_12%_24%,transparent_24%)] opacity-60" />
-        )}
-      </div>
+        </div>
+      ) : (
+        // Ohne Bild kompakt: nur ein Farbstreifen statt einer großen, leeren Bildfläche (Review R18)
+        <div aria-hidden className="h-1.5 bg-brand" />
+      )}
       <div className="flex flex-1 flex-col p-5">
         <p className="flex flex-wrap items-center gap-x-2 text-xs font-semibold uppercase tracking-wide text-brand-text">
           {doc.publishedAt && <time dateTime={doc.publishedAt}>{formatDate(doc.publishedAt)}</time>}

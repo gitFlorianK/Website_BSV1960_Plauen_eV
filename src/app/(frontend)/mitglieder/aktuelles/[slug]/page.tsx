@@ -35,7 +35,7 @@ export default async function MembersPostPage({ params }: Args) {
 
   return (
     <article className="max-w-3xl">
-      <Link href={routes.membersNews} className="inline-flex items-center gap-1 text-sm font-medium text-brand-text hover:text-navy">
+      <Link href={routes.membersNews} className="inline-flex items-center gap-1 py-1 text-sm font-medium text-brand-text hover:text-navy">
         <ArrowLeftIcon aria-hidden className="size-4" /> Alle Neuigkeiten
       </Link>
       <h1 className="mt-4 text-3xl font-bold tracking-tight md:text-4xl">{post.title}</h1>

@@ -182,7 +182,7 @@ export function CheckboxField({
           required={required}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy(name, error, hint, idPrefix)}
-          className="mt-0.5 size-5 shrink-0 accent-[var(--navy)]"
+          className="size-6 shrink-0 accent-[var(--navy)]"
           {...rest}
         />
         <label htmlFor={id} className="leading-snug">
@@ -194,7 +194,8 @@ export function CheckboxField({
           )}
         </label>
       </div>
-      <div className="pl-8">
+      {/* Einzug = Checkbox (24 px) + Abstand (12 px) */}
+      <div className="pl-9">
         <Messages name={name} error={error} hint={hint} idPrefix={idPrefix} />
       </div>
     </div>

@@ -12,7 +12,7 @@ import { PayloadRedirects } from '@/components/PayloadRedirects'
 import RichText from '@/components/RichText'
 import type { Post } from '@/payload-types'
 import { formatDate } from '@/utilities/dates'
-import { generateMeta } from '@/utilities/generateMeta'
+import { generateMeta, notFoundMeta } from '@/utilities/generateMeta'
 import { getPreviewUser } from '@/utilities/previewUser'
 import { publicMedia } from '@/utilities/publicMedia'
 import { routes } from '@/utilities/routes'
@@ -41,7 +41,7 @@ export default async function PostPage({ params }: Args) {
 
       <header className="border-b border-border bg-brand-soft">
         <div className="container py-10 md:py-14">
-          <Link href={routes.posts} className="inline-flex items-center gap-1 text-sm font-medium text-brand-text hover:text-navy">
+          <Link href={routes.posts} className="inline-flex items-center gap-1 py-1 text-sm font-medium text-brand-text hover:text-navy">
             <ArrowLeftIcon aria-hidden className="size-4" /> Alle Beiträge
           </Link>
           <p className="mt-4 flex flex-wrap gap-x-2 text-sm font-semibold uppercase tracking-wide text-brand-text">
@@ -95,7 +95,7 @@ export default async function PostPage({ params }: Args) {
 export async function generateMetadata({ params }: Args): Promise<Metadata> {
   const { slug = '' } = await params
   const post = await queryPostBySlug({ slug: decodeURIComponent(slug) })
-  return generateMeta({ doc: post, collection: 'posts' })
+  return post ? generateMeta({ doc: post, collection: 'posts' }) : notFoundMeta
 }
 
 const queryPostBySlug = cache(async ({ slug }: { slug: string }) => {

@@ -35,9 +35,15 @@ export default async function GalleriesPage() {
       </LowImpactHero>
       <div className="container mt-10">
         {docs.length === 0 ? (
-          <p className="max-w-3xl rounded-lg border-l-4 border-brand bg-brand-soft p-6 text-lg">
-            Unsere Fotoalben sind aus Rücksicht auf die abgebildeten Personen nur für Vereinsmitglieder sichtbar.
-          </p>
+          <div className="max-w-3xl rounded-lg border-l-4 border-brand bg-brand-soft p-6 text-lg">
+            <p>Unsere Fotoalben sind aus Rücksicht auf die abgebildeten Personen nur für Vereinsmitglieder sichtbar.</p>
+            <p className="mt-3">
+              Du bist Mitglied?{' '}
+              <Link href={routes.membersGalleries} className="font-medium text-brand-text underline underline-offset-2 hover:text-navy">
+                Zu den Fotos im Mitgliederbereich
+              </Link>
+            </p>
+          </div>
         ) : (
           <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {docs.map((g) => {

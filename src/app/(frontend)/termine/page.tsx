@@ -48,7 +48,7 @@ export default async function EventsPage() {
           <a href={webcal} className="rounded-md bg-brand px-4 py-2 font-semibold text-primary-foreground hover:bg-brand-hover">
             Kalender abonnieren
           </a>
-          <a href={routes.eventsIcs} className="text-sm font-medium text-brand-text underline underline-offset-2 hover:text-navy">
+          <a href={routes.eventsIcs} className="inline-block py-1 text-sm font-medium text-brand-text underline underline-offset-2 hover:text-navy">
             .ics herunterladen
           </a>
         </div>

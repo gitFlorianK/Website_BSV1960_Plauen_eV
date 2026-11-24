@@ -8,7 +8,7 @@ import React, { cache } from 'react'
 import { RenderBlocks } from '@/blocks/RenderBlocks'
 import { RenderHero } from '@/heros/RenderHero'
 import { LowImpactHero } from '@/heros/LowImpact'
-import { generateMeta } from '@/utilities/generateMeta'
+import { generateMeta, notFoundMeta } from '@/utilities/generateMeta'
 import { getPreviewUser } from '@/utilities/previewUser'
 import { LivePreviewListener } from '@/components/LivePreviewListener'
 
@@ -57,7 +57,7 @@ export default async function Page({ params: paramsPromise }: Args) {
 export async function generateMetadata({ params: paramsPromise }: Args): Promise<Metadata> {
   const { slug } = await resolve(paramsPromise)
   const page = slug ? await queryPageBySlug({ slug }) : null
-  return generateMeta({ doc: page })
+  return page ? generateMeta({ doc: page }) : notFoundMeta
 }
 
 const queryPageBySlug = cache(async ({ slug }: { slug: string }) => {

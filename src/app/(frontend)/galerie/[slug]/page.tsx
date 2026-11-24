@@ -9,6 +9,7 @@ import { ArrowLeftIcon } from 'lucide-react'
 import { GalleryGrid } from '@/components/Gallery/Lightbox'
 import { toLightboxImages } from '@/lib/galleries'
 import { formatDate } from '@/utilities/dates'
+import { notFoundMeta } from '@/utilities/generateMeta'
 import { mergeOpenGraph, SITE_NAME } from '@/utilities/mergeOpenGraph'
 import { routes } from '@/utilities/routes'
 
@@ -36,7 +37,7 @@ export default async function GalleryPage({ params }: Args) {
     <article className="pb-16">
       <header className="border-b border-border bg-brand-soft">
         <div className="container py-10 md:py-14">
-          <Link href={routes.galleries} className="inline-flex items-center gap-1 text-sm font-medium text-brand-text hover:text-navy">
+          <Link href={routes.galleries} className="inline-flex items-center gap-1 py-1 text-sm font-medium text-brand-text hover:text-navy">
             <ArrowLeftIcon aria-hidden className="size-4" /> Alle Alben
           </Link>
           <h1 className="mt-4 max-w-4xl text-3xl font-bold tracking-tight md:text-5xl">{gallery.title}</h1>
@@ -58,7 +59,7 @@ export default async function GalleryPage({ params }: Args) {
 export async function generateMetadata({ params }: Args): Promise<Metadata> {
   const { slug } = await params
   const gallery = await findGallery(decodeURIComponent(slug))
-  if (!gallery) return { title: SITE_NAME }
+  if (!gallery) return notFoundMeta
   const title = `${gallery.title} | Galerie | ${SITE_NAME}`
   return {
     title,

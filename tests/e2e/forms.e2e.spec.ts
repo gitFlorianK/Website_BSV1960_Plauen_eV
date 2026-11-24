@@ -71,6 +71,19 @@ test('Mitgliedsantrag blendet Angaben der Erziehungsberechtigten nur bei Minderj
   await expect(form.getByRole('group', { name: 'Erziehungsberechtigte(r)' })).toHaveCount(0)
 })
 
+test('„Jetzt anmelden“ wählt den Kurs im Formular vor', async ({ page }) => {
+  await page.goto('/anfaengerkurs')
+  const links = page.getByRole('link', { name: /Jetzt anmelden|Auf die Warteliste/ })
+  expect(await links.count()).toBeGreaterThanOrEqual(2)
+  const select = page.locator('#anmeldung select[name="course"]')
+  // Nacheinander zwei Kurse: auch der zweite Link auf derselben Seite muss die Auswahl ändern
+  for (const i of [0, 1]) {
+    const id = new URL((await links.nth(i).getAttribute('href'))!, 'http://x').searchParams.get('kurs')
+    await links.nth(i).click()
+    await expect(select).toHaveValue(id!)
+  }
+})
+
 test('Bestätigungsseite: ungültiger Link wird erst per Klick geprüft', async ({ page }) => {
   await page.goto('/anmeldung-bestaetigen?token=' + 'a'.repeat(43))
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/)

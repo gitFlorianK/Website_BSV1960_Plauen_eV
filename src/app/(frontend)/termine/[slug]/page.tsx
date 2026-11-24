@@ -8,6 +8,7 @@ import { ArrowLeftIcon, CalendarIcon, ExternalLinkIcon, MapPinIcon } from 'lucid
 
 import { EVENT_TYPE_LABELS, eventWhen } from '@/lib/events'
 import RichText from '@/components/RichText'
+import { notFoundMeta } from '@/utilities/generateMeta'
 import { SITE_NAME, mergeOpenGraph } from '@/utilities/mergeOpenGraph'
 import { osmLink } from '@/utilities/osm'
 import { routes } from '@/utilities/routes'
@@ -37,7 +38,7 @@ export default async function EventPage({ params }: Args) {
     <article className="pb-16">
       <header className="border-b border-border bg-brand-soft">
         <div className="container py-10 md:py-14">
-          <Link href={routes.events} className="inline-flex items-center gap-1 text-sm font-medium text-brand-text hover:text-navy">
+          <Link href={routes.events} className="inline-flex items-center gap-1 py-1 text-sm font-medium text-brand-text hover:text-navy">
             <ArrowLeftIcon aria-hidden className="size-4" /> Alle Termine
           </Link>
           <p className="mt-4 text-sm font-semibold uppercase tracking-wide text-brand-text">
@@ -109,7 +110,7 @@ export default async function EventPage({ params }: Args) {
 export async function generateMetadata({ params }: Args): Promise<Metadata> {
   const { slug } = await params
   const event = await findEvent(decodeURIComponent(slug))
-  if (!event) return { title: SITE_NAME }
+  if (!event) return notFoundMeta
   const title = `${event.title} | ${SITE_NAME}`
   return {
     title,

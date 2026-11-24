@@ -18,6 +18,8 @@ export const routes = {
   privacy: '/datenschutz',
   /** Anker des Kursanmeldeformulars (Block „Formular“ auf der Seite Anfängerkurs) */
   courseRegistration: '/anfaengerkurs#anmeldung',
+  /** Anmeldeformular mit vorausgewähltem Kurs (Parameter liest CourseRegistrationForm) */
+  courseRegistrationFor: (courseId: number | string) => `/anfaengerkurs?kurs=${courseId}#anmeldung`,
   courseConfirm: '/anmeldung-bestaetigen',
   altchaChallenge: '/next/altcha',
   login: '/login',
