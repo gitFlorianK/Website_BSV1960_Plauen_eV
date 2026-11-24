@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
 import { hasRole, nobody } from '@/access'
+import { consentsGroup, contactRow, guardianGroup, personRow } from '@/fields/applicant'
 
 /**
  * Online-Mitgliedsanträge (Anfrage an den Vorstand, kein automatischer Vereinsbeitritt).
@@ -22,20 +23,7 @@ export const MembershipApplications: CollectionConfig<'membership-applications'>
   },
   defaultSort: '-createdAt',
   fields: [
-    {
-      type: 'row',
-      fields: [
-        { name: 'firstName', label: 'Vorname', type: 'text', required: true, maxLength: 100 },
-        { name: 'lastName', label: 'Nachname', type: 'text', required: true, maxLength: 100 },
-        {
-          name: 'birthDate',
-          label: 'Geburtsdatum',
-          type: 'date',
-          required: true,
-          admin: { date: { pickerAppearance: 'dayOnly', displayFormat: 'dd.MM.yyyy' } },
-        },
-      ],
-    },
+    personRow,
     {
       type: 'row',
       fields: [
@@ -44,13 +32,7 @@ export const MembershipApplications: CollectionConfig<'membership-applications'>
         { name: 'city', label: 'Ort', type: 'text', required: true, maxLength: 100 },
       ],
     },
-    {
-      type: 'row',
-      fields: [
-        { name: 'email', label: 'E-Mail', type: 'email', required: true },
-        { name: 'phone', label: 'Telefon', type: 'text', maxLength: 50 },
-      ],
-    },
+    contactRow(),
     {
       name: 'bowType',
       label: 'Bogenart',
@@ -70,31 +52,9 @@ export const MembershipApplications: CollectionConfig<'membership-applications'>
       type: 'checkbox',
       defaultValue: false,
     },
-    {
-      name: 'guardian',
-      label: 'Erziehungsberechtigte(r) (bei Minderjährigen)',
-      type: 'group',
-      fields: [
-        {
-          type: 'row',
-          fields: [
-            { name: 'name', label: 'Name', type: 'text', maxLength: 200 },
-            { name: 'phone', label: 'Telefon', type: 'text', maxLength: 50 },
-          ],
-        },
-      ],
-    },
+    guardianGroup,
     { name: 'message', label: 'Nachricht', type: 'textarea', maxLength: 3000 },
-    {
-      name: 'consents',
-      label: 'Einwilligungen',
-      type: 'group',
-      admin: { readOnly: true },
-      fields: [
-        { name: 'privacyAcceptedAt', label: 'Datenschutzhinweise akzeptiert am', type: 'date' },
-        { name: 'guardianConsentAt', label: 'Zustimmung Erziehungsberechtigte am', type: 'date' },
-      ],
-    },
+    consentsGroup(),
     {
       name: 'status',
       label: 'Status',

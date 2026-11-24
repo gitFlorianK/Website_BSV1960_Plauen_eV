@@ -14,6 +14,7 @@ import type { Post } from '@/payload-types'
 import { formatDate } from '@/utilities/dates'
 import { generateMeta } from '@/utilities/generateMeta'
 import { getPreviewUser } from '@/utilities/previewUser'
+import { publicMedia } from '@/utilities/publicMedia'
 import { routes } from '@/utilities/routes'
 
 type Args = { params: Promise<{ slug?: string }> }
@@ -27,7 +28,7 @@ export default async function PostPage({ params }: Args) {
 
   if (!post) return <PayloadRedirects url={url} />
 
-  const hero = typeof post.heroImage === 'object' && post.heroImage?.visibility === 'public' ? post.heroImage : null
+  const hero = publicMedia(post.heroImage)
   const categories = (post.categories ?? []).filter((c) => typeof c === 'object' && c !== null)
   const season = typeof post.season === 'object' ? post.season : null
   const gallery = typeof post.gallery === 'object' ? post.gallery : null

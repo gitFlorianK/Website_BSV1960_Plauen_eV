@@ -85,7 +85,7 @@ Mailpit-Web-UI (alle lokal versendeten Mails): http://localhost:8025
 - Keine Drittanbieter-Ressourcen einbinden (Google Fonts/Maps, reCAPTCHA, CDNs, Tracking) – DSGVO-Konzept setzt auf „nur technisch notwendige Cookies, kein Banner“.
 - Secrets nur in `.env` (gitignored); neue Variablen immer auch in `.env.example` dokumentieren.
 - Rich Text über den Lexical-Renderer ausgeben, kein `dangerouslySetInnerHTML` mit Nutzerinhalten. Redaktionelle URLs mit `validateSafeUrl`/`isSafeUrl` (`src/utilities/safeUrl.ts`) prüfen – blockiert `javascript:`/`data:`.
-- Bilder mit `visibility: members` nicht über `next/image` ausgeben (der Optimierer lädt ohne Login-Cookie); Komponenten filtern auf `visibility === 'public'`.
+- Bilder mit `visibility: members` nicht über `next/image` ausgeben (der Optimierer lädt ohne Login-Cookie); Komponenten filtern über `publicMedia()` (`src/utilities/publicMedia.ts`).
 - Design: Vereinsfarben als Tailwind-Tokens (`brand`, `brand-text` für Orange als Text, `navy`, `ink`) in `globals.css`; Orange (`brand`) nie als Textfarbe auf Weiß (Kontrast). Nur helles Theme. Ansprache auf der Website: „du“.
 - Neue/geänderte Zugriffsregeln immer in `tests/int/access.int.spec.ts` abdecken (Rolle × Operation, positiv und negativ).
 - Tests, die Mails auslösen, fangen `payload.sendEmail` per `vi.spyOn` ab (siehe `tests/int/forms.int.spec.ts`); E2E-Tests setzen je Lauf eine eigene `x-real-ip`, damit Rate-Limits nicht greifen, und lesen Mails über die Mailpit-API.

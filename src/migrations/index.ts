@@ -5,6 +5,7 @@ import * as migration_20261121_041514_phase5_members from './20261121_041514_pha
 import * as migration_20261121_045329_phase6_security from './20261121_045329_phase6_security';
 import * as migration_20261121_051437_phase7_content from './20261121_051437_phase7_content';
 import * as migration_20261121_131747_r5_two_factor_moved from './20261121_131747_r5_two_factor_moved';
+import * as migration_20261124_090155_remove_populated_authors from './20261124_090155_remove_populated_authors';
 
 export const migrations = [
   {
@@ -40,6 +41,11 @@ export const migrations = [
   {
     up: migration_20261121_131747_r5_two_factor_moved.up,
     down: migration_20261121_131747_r5_two_factor_moved.down,
-    name: '20261121_131747_r5_two_factor_moved'
+    name: '20261121_131747_r5_two_factor_moved',
+  },
+  {
+    up: migration_20261124_090155_remove_populated_authors.up,
+    down: migration_20261124_090155_remove_populated_authors.down,
+    name: '20261124_090155_remove_populated_authors'
   },
 ];
