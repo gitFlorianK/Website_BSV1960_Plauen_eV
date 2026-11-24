@@ -1,3 +1,6 @@
+import { readdirSync } from 'node:fs'
+import path from 'node:path'
+
 import { test, expect, type APIRequestContext } from '@playwright/test'
 import { totp } from '../../src/lib/auth/totp'
 import { deleteUser, seed, seedUser } from '../helpers/seedUser'
@@ -29,6 +32,25 @@ async function latestMailTo(request: APIRequestContext, to: string) {
   return (await (await request.get(`${MAILPIT}/api/v1/message/${id}`)).json()).Text as string
 }
 
+/**
+ * Alle Seiten unter /mitglieder, direkt aus dem Dateisystem: Das Layout schützt nicht, jede Seite
+ * muss selbst requireMember() aufrufen – eine neue Seite ohne diesen Aufruf fällt hier sofort auf.
+ */
+function memberPages(): string[] {
+  const root = path.join(process.cwd(), 'src/app/(frontend)/mitglieder')
+  return (readdirSync(root, { recursive: true }) as string[])
+    .filter((f) => path.basename(f) === 'page.tsx')
+    .map((f) => {
+      const segments = path
+        .dirname(f)
+        .split(path.sep)
+        .filter((s) => s !== '.' && !/^\(.*\)$/.test(s)) // Route-Gruppen erscheinen nicht in der URL
+        .map((s) => (/^\[.+\]$/.test(s) ? 'e2e-gibt-es-nicht' : s)) // dynamische Segmente
+      return ['/mitglieder', ...segments].join('/')
+    })
+    .sort()
+}
+
 test.describe.configure({ mode: 'serial' })
 
 test.beforeAll(() => {
@@ -55,6 +77,18 @@ test('ohne Anmeldung: Weiterleitung zur Anmeldung, REST-Login gesperrt', async (
 
   const res = await request.post('/api/users/login', { data: { email: member.email, password: member.password } })
   expect(res.status()).toBe(403)
+})
+
+test('ohne Anmeldung: jede Seite im Mitgliederbereich leitet zur Anmeldung um', async ({ page }) => {
+  const paths = memberPages()
+  expect(paths).toContain('/mitglieder')
+  expect(paths).toContain('/mitglieder/aktuelles/e2e-gibt-es-nicht')
+  for (const p of paths) {
+    await page.goto(p)
+    const url = new URL(page.url())
+    expect(url.pathname, p).toBe('/login')
+    expect(url.searchParams.get('redirect'), p).toBe(p)
+  }
 })
 
 test('Einladung annehmen, anmelden, für ein Turnier melden', async ({ page, request }) => {

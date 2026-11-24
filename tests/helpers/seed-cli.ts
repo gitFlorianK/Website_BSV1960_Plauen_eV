@@ -4,6 +4,7 @@
  * JSON in der letzten Ausgabezeile.
  */
 import { getPayload } from 'payload'
+import sharp from 'sharp'
 import config from '@payload-config'
 
 import { encryptSecret } from '@/lib/auth/crypto'
@@ -16,10 +17,12 @@ type Task =
   | { action: 'deleteEvent'; slug: string }
   | { action: 'cleanup'; eventSlugPrefix: string; emailPrefix: string }
   | { action: 'deleteEmptyDrafts' }
-  | { action: 'post'; title: string; slug: string; text: string; visibility: 'public' | 'members'; status: 'draft' | 'published' }
+  | { action: 'post'; title: string; slug: string; text: string; visibility: 'public' | 'members'; status: 'draft' | 'published'; image?: number }
   | { action: 'deletePost'; slug: string }
   | { action: 'course'; title: string; audience: 'adults' | 'youth'; deadline: string }
   | { action: 'deleteCourses'; titlePrefix: string }
+  | { action: 'media'; name: string; alt: string; visibility: 'public' | 'members' }
+  | { action: 'deleteMedia'; id: number }
   | { action: 'baseUser' }
 
 const task = JSON.parse(process.env.E2E_SEED ?? '{}') as Task
@@ -71,6 +74,8 @@ switch (task.action) {
         slug: task.slug,
         visibility: task.visibility,
         _status: task.status,
+        // Titelbild und Vorschaubild (SEO) – Startseite und Beitragsliste nutzen beide
+        ...(task.image ? { heroImage: task.image, meta: { image: task.image } } : {}),
         content: { root: { type: 'root', version: 1, direction: null, format: '', indent: 0, children: [{ ...paragraph, children: [text] }] } },
       } as never,
       context,
@@ -78,6 +83,21 @@ switch (task.action) {
     result = { id: post.id }
     break
   }
+  case 'media': {
+    // Kleines erzeugtes PNG; Payload legt daraus alle Bildgrößen an
+    const data = await sharp({ create: { width: 800, height: 600, channels: 3, background: '#5b7c99' } }).png().toBuffer()
+    const media = await payload.create({
+      collection: 'media',
+      data: { alt: task.alt, visibility: task.visibility },
+      file: { data, mimetype: 'image/png', name: task.name, size: data.length },
+      context,
+    })
+    result = { id: media.id, filename: media.filename }
+    break
+  }
+  case 'deleteMedia':
+    await payload.delete({ collection: 'media', id: task.id, context })
+    break
   case 'deletePost':
     await payload.delete({ collection: 'posts', where: { slug: { equals: task.slug } }, context })
     break
