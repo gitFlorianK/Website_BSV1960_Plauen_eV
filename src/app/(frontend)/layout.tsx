@@ -22,7 +22,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const { isEnabled } = await draftMode()
 
   return (
-    <html data-scroll-behavior="smooth" className={cn(GeistSans.variable, GeistMono.variable)} lang="de">
+    // suppressHydrationWarning: Browser-Erweiterungen und -Funktionen (Übersetzen, Dunkelmodus …) ändern
+    // Klassen/Attribute an <html> vor der Hydration. Gilt nur für dieses Element, nicht für den Inhalt.
+    <html
+      data-scroll-behavior="smooth"
+      className={cn(GeistSans.variable, GeistMono.variable)}
+      lang="de"
+      suppressHydrationWarning
+    >
       <body>
         <AdminBar adminBarProps={{ preview: isEnabled }} />
         <Header />
