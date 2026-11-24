@@ -19,7 +19,9 @@ type Task =
   | { action: 'deleteEmptyDrafts' }
   | { action: 'post'; title: string; slug: string; text: string; visibility: 'public' | 'members'; status: 'draft' | 'published'; image?: number }
   | { action: 'deletePost'; slug: string }
-  | { action: 'course'; title: string; audience: 'adults' | 'youth'; deadline: string }
+  | { action: 'course'; title: string; audience: 'adults' | 'youth'; deadline: string; capacity?: number }
+  | { action: 'findByEmail'; collection: 'membership-applications' | 'course-registrations'; emails: string[] }
+  | { action: 'deleteByEmail'; collection: 'membership-applications' | 'course-registrations'; emails: string[] }
   | { action: 'deleteCourses'; titlePrefix: string }
   | { action: 'media'; name: string; alt: string; visibility: 'public' | 'members' }
   | { action: 'deleteMedia'; id: number }
@@ -125,14 +127,27 @@ switch (task.action) {
     await payload.delete({ collection: 'courses', where: { title: { equals: task.title } }, context })
     const course = await payload.create({
       collection: 'courses',
-      data: { title: task.title, audience: task.audience, status: 'open', capacity: 10, registrationDeadline: task.deadline, sessions: [{ start: task.deadline }] },
+      data: { title: task.title, audience: task.audience, status: 'open', capacity: task.capacity ?? 10, registrationDeadline: task.deadline, sessions: [{ start: task.deadline }] },
       context,
     })
     result = { id: course.id }
     break
   }
-  case 'deleteCourses':
+  case 'deleteCourses': {
+    // Kurse mit Anmeldungen lassen sich nicht löschen (beforeDelete) – Anmeldungen zuerst
+    const { docs } = await payload.find({ collection: 'courses', where: { title: { like: task.titlePrefix } }, depth: 0, limit: 100 })
+    const ids = docs.map((c) => c.id)
+    if (ids.length) await payload.delete({ collection: 'course-registrations', where: { course: { in: ids } }, context })
     await payload.delete({ collection: 'courses', where: { title: { like: task.titlePrefix } }, context })
+    break
+  }
+  case 'findByEmail': {
+    const { docs } = await payload.find({ collection: task.collection, where: { email: { in: task.emails } }, depth: 0, limit: 50, sort: 'createdAt' })
+    result = docs
+    break
+  }
+  case 'deleteByEmail':
+    await payload.delete({ collection: task.collection, where: { email: { in: task.emails } }, context })
     break
   case 'deleteEvent':
     await payload.delete({ collection: 'events', where: { slug: { equals: task.slug } }, context })
