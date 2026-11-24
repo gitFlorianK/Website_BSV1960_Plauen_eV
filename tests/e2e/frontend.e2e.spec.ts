@@ -22,6 +22,18 @@ test.describe('Frontend', () => {
     expect(external).toEqual([])
   })
 
+  test('Buttons im Titelbild sind anklickbar (Bild liegt nicht darüber)', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'networkidle' })
+    const hero = page.locator('main section').first()
+    await expect(hero.locator('img')).toBeVisible()
+    // click() scheitert, wenn ein anderes Element (z. B. das <picture> des Titelbilds) die Klicks abfängt
+    await hero.getByRole('link', { name: 'Anfängerkurs', exact: true }).click({ timeout: 5_000 })
+    await expect(page).toHaveURL(/\/anfaengerkurs$/)
+    await page.goBack()
+    await hero.getByRole('link', { name: 'Trainingszeiten', exact: true }).click({ timeout: 5_000 })
+    await expect(page).toHaveURL(/\/training$/)
+  })
+
   test('Trainingszeiten zeigen beide Saisons, eine davon als aktuell', async ({ page }) => {
     await page.goto('/training')
     await expect(page.getByRole('heading', { name: 'Hallensaison' })).toBeVisible()
