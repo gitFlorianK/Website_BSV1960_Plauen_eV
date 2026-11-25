@@ -165,6 +165,8 @@ test.describe('Kursanmeldung', () => {
   })
 
   test('Anmeldung mit Bestätigungslink: erst Platz, dann Warteliste; Link nur einmal gültig', async ({ page, request }) => {
+    // Zwei vollständige Anmeldungen (je ALTCHA und Mails) – in der CI länger als die üblichen 30 s
+    test.slow()
     const stamp = Date.now()
     const people = [
       { firstName: 'Erika', email: `e2e-kurs-a-${stamp}@example.org`, status: 'registered', notice: 'ein Platz ist reserviert', mail: 'Anmeldung bestätigt' },
